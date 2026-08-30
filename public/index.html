@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>P2P Game</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <h1>P2P GAME</h1>
+
+    <div id="login">
+        <input id="roomInput" placeholder="ルームコード">
+
+        <button id="joinButton">
+            ゲームに参加
+        </button>
+    </div>
+
+    <div id="game">
+        <canvas id="canvas" width="800" height="500"></canvas>
+
+        <p>PC：WASD / 矢印キーで移動</p>
+    </div>
+<div id="mobileControls">
+    <button data-key="arrowup">↑</button>
+
+    <div>
+        <button data-key="arrowleft">←</button>
+        <button data-key="arrowdown">↓</button>
+        <button data-key="arrowright">→</button>
+    </div>
+</div>
+    <script src="game.js"></script>
+
+</body>
+</html>
