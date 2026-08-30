@@ -285,8 +285,6 @@ function sendChat() {
         text: text
     }));
 
-    // 自分の画面にも表示
-    addChatMessage("自分", text);
 
     chatInput.value = "";
 }
