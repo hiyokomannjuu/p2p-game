@@ -1,0 +1,63 @@
+body {
+    margin: 0;
+    background: #222;
+    color: white;
+    font-family: sans-serif;
+    text-align: center;
+}
+
+h1 {
+    margin-top: 20px;
+}
+
+#login {
+    margin: 20px;
+}
+
+input {
+    padding: 12px;
+    font-size: 16px;
+}
+
+button {
+    padding: 12px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#game {
+    display: none;
+}
+
+canvas {
+    max-width: 95%;
+    border: 3px solid white;
+    background: #333;
+}
+#mobileControls {
+    margin-top: 20px;
+    user-select: none;
+}
+
+#mobileControls button {
+    width: 70px;
+    height: 60px;
+    margin: 4px;
+    font-size: 28px;
+    border-radius: 12px;
+    border: none;
+    background: white;
+    color: black;
+}
+
+#mobileControls button:active {
+    transform: scale(0.9);
+    background: #ccc;
+}
+
+/* PCではスマホ用ボタンを隠す */
+@media (min-width: 700px) {
+    #mobileControls {
+        display: none;
+    }
+}
