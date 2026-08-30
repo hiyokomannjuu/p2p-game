@@ -19,6 +19,10 @@ const otherPlayers = [];
 
 const keys = {};
 
+// ====================
+// PC キーボード操作
+// ====================
+
 document.addEventListener("keydown", (event) => {
     keys[event.key.toLowerCase()] = true;
 });
@@ -26,6 +30,70 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("keyup", (event) => {
     keys[event.key.toLowerCase()] = false;
 });
+
+// ====================
+// スマホ操作ボタンを作る
+// ====================
+
+const mobileControls = document.createElement("div");
+
+mobileControls.id = "mobileControls";
+
+mobileControls.innerHTML = `
+    <div>
+        <button data-key="arrowup">↑</button>
+    </div>
+
+    <div>
+        <button data-key="arrowleft">←</button>
+        <button data-key="arrowdown">↓</button>
+        <button data-key="arrowright">→</button>
+    </div>
+`;
+
+mobileControls.style.textAlign = "center";
+mobileControls.style.marginTop = "15px";
+mobileControls.style.userSelect = "none";
+
+mobileControls.querySelectorAll("button").forEach((button) => {
+
+    button.style.width = "70px";
+    button.style.height = "70px";
+    button.style.fontSize = "30px";
+    button.style.margin = "5px";
+    button.style.touchAction = "none";
+
+    const key = button.dataset.key;
+
+    // 指を押した
+    button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        keys[key] = true;
+    });
+
+    // 指を離した
+    button.addEventListener("pointerup", (event) => {
+        event.preventDefault();
+        keys[key] = false;
+    });
+
+    // ボタンの外に指が行った場合
+    button.addEventListener("pointerleave", () => {
+        keys[key] = false;
+    });
+
+    // タッチキャンセル
+    button.addEventListener("pointercancel", () => {
+        keys[key] = false;
+    });
+});
+
+// ゲーム画面の下にボタンを追加
+game.appendChild(mobileControls);
+
+// ====================
+// ルーム参加
+// ====================
 
 joinButton.addEventListener("click", () => {
 
@@ -36,9 +104,10 @@ joinButton.addEventListener("click", () => {
         return;
     }
 
-   socket = new WebSocket(
-    `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`
-);
+    socket = new WebSocket(
+        `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`
+    );
+
     socket.addEventListener("open", () => {
 
         socket.send(JSON.stringify({
@@ -63,6 +132,7 @@ joinButton.addEventListener("click", () => {
             );
 
             if (!player) {
+
                 player = {
                     id: data.id,
                     x: data.x,
@@ -78,8 +148,16 @@ joinButton.addEventListener("click", () => {
     });
 });
 
+// ====================
+// プレイヤーID
+// ====================
+
 const playerId =
     Math.random().toString(36).substring(2);
+
+// ====================
+// プレイヤー更新
+// ====================
 
 function update() {
 
@@ -103,12 +181,18 @@ function update() {
 
     myPlayer.x = Math.max(
         0,
-        Math.min(canvas.width - myPlayer.size, myPlayer.x)
+        Math.min(
+            canvas.width - myPlayer.size,
+            myPlayer.x
+        )
     );
 
     myPlayer.y = Math.max(
         0,
-        Math.min(canvas.height - myPlayer.size, myPlayer.y)
+        Math.min(
+            canvas.height - myPlayer.size,
+            myPlayer.y
+        )
     );
 
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -121,6 +205,10 @@ function update() {
         }));
     }
 }
+
+// ====================
+// 描画
+// ====================
 
 function draw() {
 
@@ -154,6 +242,10 @@ function draw() {
         );
     }
 }
+
+// ====================
+// ゲームループ
+// ====================
 
 function gameLoop() {
 
