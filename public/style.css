@@ -61,3 +61,35 @@ canvas {
         display: none;
     }
 }
+#chat {
+    width: 800px;
+    max-width: 95%;
+    margin: 10px auto;
+}
+
+#chatMessages {
+    height: 150px;
+    overflow-y: auto;
+    background: #222;
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+#chatInputArea {
+    display: flex;
+    gap: 5px;
+}
+
+#chatInput {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+}
+
+#chatSend {
+    padding: 10px 18px;
+    font-size: 16px;
+    cursor: pointer;
+}
