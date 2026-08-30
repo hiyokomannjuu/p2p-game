@@ -124,7 +124,9 @@ joinButton.addEventListener("click", () => {
     socket.addEventListener("message", (event) => {
 
         const data = JSON.parse(event.data);
-
+if (data.type === "chat") {
+    addChatMessage(data.name, data.text);
+}
         if (data.type === "player") {
 
             let player = otherPlayers.find(
@@ -254,3 +256,43 @@ function gameLoop() {
 
     requestAnimationFrame(gameLoop);
 }
+const chatInput = document.getElementById("chatInput");
+const chatSend = document.getElementById("chatSend");
+const chatMessages = document.getElementById("chatMessages");
+
+function addChatMessage(name, text) {
+    const message = document.createElement("div");
+    message.textContent = `${name}: ${text}`;
+
+    chatMessages.appendChild(message);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function sendChat() {
+    const text = chatInput.value.trim();
+
+    if (!text) return;
+
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        alert("まだゲームに接続されていません");
+        return;
+    }
+
+    socket.send(JSON.stringify({
+        type: "chat",
+        text: text
+    }));
+
+    // 自分の画面にも表示
+    addChatMessage("自分", text);
+
+    chatInput.value = "";
+}
+
+chatSend.addEventListener("click", sendChat);
+
+chatInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        sendChat();
+    }
+});
