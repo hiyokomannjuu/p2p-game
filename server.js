@@ -12,7 +12,7 @@ const rooms = new Map();
 
 wss.on("connection", (ws) => {
     let room = null;
-    let playerName = "プレイヤー";
+    let playerName = "名無し";
 
     ws.on("message", (message) => {
         const data = JSON.parse(message);
