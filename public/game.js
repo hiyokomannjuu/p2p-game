@@ -3,6 +3,7 @@ const ctx = canvas.getContext("2d");
 
 const roomInput = document.getElementById("roomInput");
 const joinButton = document.getElementById("joinButton");
+const nameInput = document.getElementById("nameInput");
 
 const login = document.getElementById("login");
 const game = document.getElementById("game");
@@ -97,8 +98,8 @@ game.appendChild(mobileControls);
 
 joinButton.addEventListener("click", () => {
 
-    const room = roomInput.value.trim();
-
+     const name = nameInput.value.trim();
+     const room = roomInput.value.trim();
     if (!room) {
         alert("ルームコードを入力してください");
         return;
@@ -112,7 +113,8 @@ joinButton.addEventListener("click", () => {
 
         socket.send(JSON.stringify({
             type: "join",
-            room: room
+            room: room,
+            name: name 
         }));
 
         login.style.display = "none";
