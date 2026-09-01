@@ -162,26 +162,50 @@ const playerId =
 // プレイヤー更新
 // ====================
 
-function update() {
+let lastTime = performance.now();
 
-    const speed = 4;
+function update(currentTime) {
+
+    const deltaTime = Math.min(
+        (currentTime - lastTime) / 1000,
+        0.05
+    );
+
+    lastTime = currentTime;
+
+    const speed = 240;
+
+    let dx = 0;
+    let dy = 0;
 
     if (keys["w"] || keys["arrowup"]) {
-        myPlayer.y -= speed;
+        dy -= 1;
     }
 
     if (keys["s"] || keys["arrowdown"]) {
-        myPlayer.y += speed;
+        dy += 1;
     }
 
     if (keys["a"] || keys["arrowleft"]) {
-        myPlayer.x -= speed;
+        dx -= 1;
     }
 
     if (keys["d"] || keys["arrowright"]) {
-        myPlayer.x += speed;
+        dx += 1;
     }
 
+    // 斜め移動だけ速くならないようにする
+    if (dx !== 0 || dy !== 0) {
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        dx /= length;
+        dy /= length;
+
+        myPlayer.x += dx * speed * deltaTime;
+        myPlayer.y += dy * speed * deltaTime;
+    }
+
+    // 画面外に出ないようにする
     myPlayer.x = Math.max(
         0,
         Math.min(
@@ -198,6 +222,7 @@ function update() {
         )
     );
 
+    // 他のプレイヤーに位置を送る
     if (socket && socket.readyState === WebSocket.OPEN) {
 
         socket.send(JSON.stringify({
@@ -208,7 +233,6 @@ function update() {
         }));
     }
 }
-
 // ====================
 // 描画
 // ====================
@@ -250,9 +274,9 @@ function draw() {
 // ゲームループ
 // ====================
 
-function gameLoop() {
+function gameLoop(currentTime) {
 
-    update();
+    update(currentTime);
     draw();
 
     requestAnimationFrame(gameLoop);
