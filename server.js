@@ -173,14 +173,13 @@ function sendWaitingState(room) {
 
 function checkReady(room) {
 
-    // 参加人数が足りない
+    // 1人用なら1人でOK
+    // 2人以上なら指定人数が揃うまで待つ
     if (
-        room.players.size <
-        room.maxPlayers
+        room.maxPlayers > 1 &&
+        room.players.size < room.maxPlayers
     ) {
-
         return;
-
     }
 
     // 全員準備完了しているか
@@ -190,25 +189,19 @@ function checkReady(room) {
     ) {
 
         if (!player.ready) {
-
             return;
-
         }
 
     }
 
     // 待機中以外なら開始しない
     if (
-        room.phase !==
-        "waiting"
+        room.phase !== "waiting"
     ) {
-
         return;
-
     }
 
     startCountdown(room);
-
 }
 
 // ====================
@@ -713,8 +706,8 @@ wss.on("connection", (ws) => {
         ) {
 
             if (
-                currentRoom.players.size <
-                currentRoom.maxPlayers
+                currentRoom.maxPlayers > 1 &&
+                currentRoom.players.size < currentRoom.maxPlayers
             ) {
 
                 ws.send(
