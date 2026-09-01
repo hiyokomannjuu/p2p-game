@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,37 +14,118 @@
 
     <h1>P2P GAME</h1>
 
+    <!-- ==================== -->
+    <!-- ログイン画面 -->
+    <!-- ==================== -->
+
     <div id="login">
 
-        <input id="nameInput" placeholder="名前を入力">
+        <input
+            id="nameInput"
+            placeholder="名前を入力"
+            maxlength="20"
+        >
 
-        <input id="roomInput" placeholder="ルームコード">
+        <br><br>
+
+        <input
+            id="roomInput"
+            placeholder="ルーム番号"
+        >
+
+        <br><br>
+
+        <!-- 参加人数 -->
+        <label for="playerCount">
+            参加人数：
+        </label>
+
+        <select id="playerCount">
+
+            <option value="2">2人</option>
+            <option value="3">3人</option>
+            <option value="4" selected>4人</option>
+            <option value="5">5人</option>
+            <option value="6">6人</option>
+            <option value="8">8人</option>
+            <option value="10">10人</option>
+            <option value="15">15人</option>
+            <option value="20">20人</option>
+
+        </select>
+
+        <br><br>
 
         <button id="joinButton">
             ゲームに参加
         </button>
+
     </div>
+
+
+    <!-- ==================== -->
+    <!-- ゲーム画面 -->
+    <!-- ==================== -->
 
     <div id="game">
-        <canvas id="canvas" width="800" height="500"></canvas>
+
+        <!-- ゲーム状態 -->
+        <div id="gameStatus">
+            待機中...
+        </div>
+
+        <!-- 準備完了ボタン -->
+        <button id="readyButton">
+            準備完了
+        </button>
+
+        <!-- 参加人数 -->
+        <div id="playerCountDisplay">
+            参加人数：0 / 0
+        </div>
+
+        <!-- キャンバス -->
+        <canvas
+            id="canvas"
+            width="800"
+            height="500"
+        ></canvas>
+
+
+        <!-- ==================== -->
+        <!-- チャット -->
+        <!-- ==================== -->
+
         <div id="chat">
-    <div id="chatMessages"></div>
 
-    <div id="chatInputArea">
-        <input
-            id="chatInput"
-            type="text"
-            placeholder="メッセージを入力"
-            maxlength="200"
-        >
-        <button id="chatSend">送信</button>
-    </div>
-</div>
+            <div id="chatMessages"></div>
 
-        <p>PC：WASD / 矢印キーで移動</p>
+            <div id="chatInputArea">
+
+                <input
+                    id="chatInput"
+                    type="text"
+                    placeholder="メッセージを入力"
+                    maxlength="200"
+                >
+
+                <button id="chatSend">
+                    送信
+                </button>
+
+            </div>
+
+        </div>
+
+        <p>
+            PC：WASD / 矢印キーで移動
+        </p>
+
     </div>
+
 
     <script src="game.js"></script>
 
 </body>
+
 </html>
