@@ -5,7 +5,8 @@ const roomInput = document.getElementById("roomInput");
 const joinButton = document.getElementById("joinButton");
 const nameInput = document.getElementById("nameInput");
 const playerCountInput = document.getElementById("playerCount");
-
+const gameModeInput =
+    document.getElementById("gameMode");
 const login = document.getElementById("login");
 const game = document.getElementById("game");
 
@@ -24,6 +25,7 @@ let coins = [];
 
 let maxPlayers = 0;
 let timeLeft = 60;
+let gameMode = "coin";
 
 let gamePhase = "waiting";
 let gameLoopStarted = false;
@@ -182,7 +184,8 @@ joinButton.addEventListener("click", () => {
 
                 name: name,
 
-                maxPlayers: selectedPlayers
+                maxPlayers: selectedPlayers,
+                gameMode: gameModeInput.value
 
             })
         );
@@ -232,7 +235,7 @@ joinButton.addEventListener("click", () => {
 
                 maxPlayers =
                     data.maxPlayers;
-
+                gameMode = data.gameMode || "coin"; 
                 timeLeft =
                     data.timeLeft || 60;
 
@@ -276,7 +279,8 @@ joinButton.addEventListener("click", () => {
                 maxPlayers =
                     data.maxPlayers ||
                     maxPlayers;
-
+                gameMode =
+                    data.gameMode || gameMode;
                 gamePhase =
                     "waiting";
 
