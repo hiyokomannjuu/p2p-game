@@ -887,6 +887,8 @@ function update(currentTime) {
 
 function draw() {
 
+    console.log("DRAW動いてる");
+    
     ctx.clearRect(
         0,
         0,
@@ -897,51 +899,9 @@ function draw() {
 
     // ----------------------------------------------
     // コイン
-    // ----------------------------------------------
-
-    for (const coin of coins) {
-
-        ctx.beginPath();
-
-        ctx.arc(
-            coin.x,
-            coin.y,
-            11,
-            0,
-            Math.PI * 2
-        );
-
-        ctx.fillStyle =
-            "gold";
-
-        ctx.fill();
-
-        ctx.strokeStyle =
-            "orange";
-
-        ctx.lineWidth = 3;
-
-        ctx.stroke();
-
-        ctx.fillStyle =
-            "black";
-
-        ctx.font =
-            "bold 12px sans-serif";
-
-        ctx.textAlign =
-            "center";
-
-        ctx.textBaseline =
-            "middle";
-
-        ctx.fillText(
-            "$",
-            coin.x,
-            coin.y
-        );
-
-    }
+    // ---------------------------------------------
+    
+    drawCoins(ctx, coins);
 
 
     // ----------------------------------------------
@@ -970,56 +930,40 @@ function draw() {
             30
         );
 
-
-        // 名前
-
-        ctx.fillStyle =
-            "white";
-
-        ctx.font =
-            "12px sans-serif";
-
-        ctx.textAlign =
-            "center";
-
-        ctx.fillText(
-            player.name || "名無し",
-            player.x + 15,
-            player.y - 7
-        );
-
     }
+       // ----------------------------------------------
+       // 自分
+       // ----------------------------------------------
 
-
-    // ----------------------------------------------
-    // 自分
-    // ----------------------------------------------
-
-    ctx.fillStyle =
+       ctx.fillStyle =
         myColor;
 
-    ctx.fillRect(
-        myPlayer.x,
-        myPlayer.y,
-        myPlayer.size,
-        myPlayer.size
-    );
+       ctx.fillRect(
+      myPlayer.x,
+      myPlayer.y,
+      myPlayer.size,
+      myPlayer.size
+       );
 
-
-    ctx.fillStyle =
+       ctx.fillStyle =
         "white";
 
-    ctx.font =
+       ctx.font =
         "12px sans-serif";
 
-    ctx.textAlign =
-        "center";
+       ctx.textAlign =
+       "center";
 
-    ctx.fillText(
-        "YOU",
-        myPlayer.x + 15,
-        myPlayer.y - 7
-    );
+       ctx.fillText(
+           "YOU",
+       myPlayer.x + 15,
+       myPlayer.y - 7
+         );
+
+    
+
+
+
 
 }
 
