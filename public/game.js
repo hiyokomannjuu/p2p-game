@@ -273,24 +273,34 @@ joinButton.addEventListener("click", () => {
 
             if (data.type === "waiting") {
 
-                players =
-                    data.players || [];
+    players =
+        data.players || [];
 
-                maxPlayers =
-                    data.maxPlayers ||
-                    maxPlayers;
-                gameMode =
-                    data.gameMode || gameMode;
-                gamePhase =
-                    "waiting";
+    maxPlayers =
+        data.maxPlayers ||
+        maxPlayers;
 
-                updatePlayerCount();
+    gameMode =
+        data.gameMode || gameMode;
 
-                updateReadyButton();
+    gamePhase =
+        "waiting";
 
-                updateStatus();
+    // GAME OVERを消す
+    const gameOver =
+        document.getElementById("gameOver");
 
-            }
+    if (gameOver) {
+        gameOver.remove();
+    }
+
+    updatePlayerCount();
+
+    updateReadyButton();
+
+    updateStatus();
+
+}
 
 
             // ======================================
@@ -1124,12 +1134,19 @@ function showGameOver(ranking) {
     });
 
 
-    html +=
-        `<br>
-        <small>
-        全員が準備完了すると次のゲームが始まります
-        </small>`;
+    html += `
+    <br>
 
+    <button id="nextGameButton">
+        次のゲームへ
+    </button>
+
+    <br><br>
+
+    <small>
+        全員が準備完了すると次のゲームが始まります
+    </small>
+`;
 
     result.innerHTML =
         html;
@@ -1138,7 +1155,39 @@ function showGameOver(ranking) {
     document.body.appendChild(
         result
     );
+const nextGameButton =
+    document.getElementById("nextGameButton");
 
+nextGameButton.addEventListener(
+    "click",
+    () => {
+
+        if (
+            !socket ||
+            socket.readyState !== WebSocket.OPEN
+        ) {
+
+            alert(
+                "サーバーとの接続がありません"
+            );
+
+            return;
+
+        }
+
+        nextGameButton.disabled = true;
+
+        nextGameButton.textContent =
+            "準備完了！";
+
+        socket.send(
+            JSON.stringify({
+                type: "next-game"
+            })
+        );
+
+    }
+);
 }
 
 
