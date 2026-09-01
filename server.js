@@ -62,11 +62,13 @@ function createCoin() {
 // ルーム作成
 // ====================
 
-function createRoom(maxPlayers) {
+function createRoom(maxPlayers, gameMode) {
 
     return {
 
         maxPlayers: maxPlayers,
+
+        gameMode: gameMode,
 
         players: new Map(),
 
@@ -146,7 +148,9 @@ function sendWaitingState(room) {
 
         playerCount: room.players.size,
 
-        maxPlayers: room.maxPlayers
+        maxPlayers: room.maxPlayers,
+     
+        gameMode: room.gameMode   
 
     });
 
@@ -436,8 +440,10 @@ wss.on("connection", (ws) => {
                 }
 
                 room =
-                    createRoom(maxPlayers);
-
+                    createRoom(
+                   maxPlayers,
+                   data.gameMode || "coin"
+                 );
                 rooms.set(roomCode, room);
 
             } else {
@@ -545,7 +551,8 @@ wss.on("connection", (ws) => {
 
                 maxPlayers:
                     room.maxPlayers,
-
+                gameMode:
+                    room.gameMode,
                 phase:
                     room.phase,
 
