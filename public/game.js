@@ -4,20 +4,29 @@ const ctx = canvas.getContext("2d");
 const roomInput = document.getElementById("roomInput");
 const joinButton = document.getElementById("joinButton");
 const nameInput = document.getElementById("nameInput");
+const playerCountInput = document.getElementById("playerCount");
 
 const login = document.getElementById("login");
 const game = document.getElementById("game");
 
+const gameStatus = document.getElementById("gameStatus");
+const readyButton = document.getElementById("readyButton");
+const playerCountDisplay =
+    document.getElementById("playerCountDisplay");
+
 let socket = null;
+
 let myPlayerId = null;
 let myColor = "red";
 
-let coins = [];
 let players = [];
+let coins = [];
 
+let maxPlayers = 0;
 let timeLeft = 60;
-let gameStarted = false;
-let gameOver = false;
+
+let gamePhase = "waiting";
+let gameLoopStarted = false;
 
 const keys = {};
 
@@ -27,49 +36,10 @@ const myPlayer = {
     size: 30
 };
 
-// ====================
-// 情報表示
-// ====================
 
-const gameInfo = document.createElement("div");
-
-gameInfo.style.fontSize = "22px";
-gameInfo.style.fontWeight = "bold";
-gameInfo.style.margin = "10px";
-
-gameInfo.innerHTML = `
-    <div id="timeDisplay">⏱️ 60秒</div>
-    <div id="scoreDisplay">🪙 自分: 0枚</div>
-`;
-
-game.insertBefore(gameInfo, canvas);
-
-const timeDisplay =
-    document.getElementById("timeDisplay");
-
-const scoreDisplay =
-    document.getElementById("scoreDisplay");
-
-// ====================
-// ランキング
-// ====================
-
-const rankingDisplay = document.createElement("div");
-
-rankingDisplay.style.width = "800px";
-rankingDisplay.style.maxWidth = "95%";
-rankingDisplay.style.margin = "10px auto";
-rankingDisplay.style.padding = "10px";
-rankingDisplay.style.background = "#111";
-rankingDisplay.style.color = "white";
-rankingDisplay.style.borderRadius = "10px";
-rankingDisplay.style.textAlign = "left";
-
-game.appendChild(rankingDisplay);
-
-// ====================
+// ==================================================
 // PC操作
-// ====================
+// ==================================================
 
 document.addEventListener("keydown", (event) => {
 
@@ -83,9 +53,10 @@ document.addEventListener("keyup", (event) => {
 
 });
 
-// ====================
+
+// ==================================================
 // スマホ操作
-// ====================
+// ==================================================
 
 const mobileControls =
     document.createElement("div");
@@ -148,9 +119,7 @@ mobileControls
 
         button.addEventListener(
             "pointercancel",
-            (event) => {
-
-                event.preventDefault();
+            () => {
 
                 keys[key] = false;
 
@@ -161,9 +130,10 @@ mobileControls
 
 game.appendChild(mobileControls);
 
-// ====================
-// ルーム参加
-// ====================
+
+// ==================================================
+// 参加
+// ==================================================
 
 joinButton.addEventListener("click", () => {
 
@@ -173,11 +143,20 @@ joinButton.addEventListener("click", () => {
     const room =
         roomInput.value.trim();
 
+    const selectedPlayers =
+        Number(playerCountInput.value);
+
+    if (!name) {
+
+        alert("名前を入力してください");
+
+        return;
+
+    }
+
     if (!room) {
 
-        alert(
-            "ルームコードを入力してください"
-        );
+        alert("ルーム番号を入力してください");
 
         return;
 
@@ -187,43 +166,55 @@ joinButton.addEventListener("click", () => {
         `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`
     );
 
-    socket.addEventListener(
-        "open",
-        () => {
 
-            socket.send(
-                JSON.stringify({
+    // ----------------------------------------------
+    // 接続成功
+    // ----------------------------------------------
 
-                    type: "join",
-                    room: room,
-                    name: name
+    socket.addEventListener("open", () => {
 
-                })
-            );
+        socket.send(
+            JSON.stringify({
 
-            login.style.display = "none";
-            game.style.display = "block";
+                type: "join",
 
-            gameStarted = true;
-            gameOver = false;
+                room: room,
 
-            requestAnimationFrame(
-                gameLoop
-            );
+                name: name,
 
-        }
-    );
+                maxPlayers: selectedPlayers
+
+            })
+        );
+
+    });
+
+
+    // ----------------------------------------------
+    // サーバーからのメッセージ
+    // ----------------------------------------------
 
     socket.addEventListener(
         "message",
         (event) => {
 
-            const data =
-                JSON.parse(event.data);
+            let data;
 
-            // ====================
-            // 自分の情報
-            // ====================
+            try {
+
+                data =
+                    JSON.parse(event.data);
+
+            } catch {
+
+                return;
+
+            }
+
+
+            // ======================================
+            // 参加完了
+            // ======================================
 
             if (data.type === "joined") {
 
@@ -239,51 +230,156 @@ joinButton.addEventListener("click", () => {
                 coins =
                     data.coins || [];
 
-                timeLeft =
-                    data.timeLeft;
+                maxPlayers =
+                    data.maxPlayers;
 
-                updateRanking();
+                timeLeft =
+                    data.timeLeft || 60;
+
+                gamePhase =
+                    data.phase || "waiting";
+
+                login.style.display =
+                    "none";
+
+                game.style.display =
+                    "block";
+
+                updatePlayerCount();
+
+                updateReadyButton();
+
+                updateStatus();
+
+                if (!gameLoopStarted) {
+
+                    gameLoopStarted = true;
+
+                    requestAnimationFrame(
+                        gameLoop
+                    );
+
+                }
 
             }
 
-            // ====================
-            // プレイヤー一覧
-            // ====================
+
+            // ======================================
+            // 待機
+            // ======================================
+
+            if (data.type === "waiting") {
+
+                players =
+                    data.players || [];
+
+                maxPlayers =
+                    data.maxPlayers ||
+                    maxPlayers;
+
+                gamePhase =
+                    "waiting";
+
+                updatePlayerCount();
+
+                updateReadyButton();
+
+                updateStatus();
+
+            }
+
+
+            // ======================================
+            // カウントダウン
+            // ======================================
+
+            if (data.type === "countdown") {
+
+                players =
+                    data.players || players;
+
+                gamePhase =
+                    "countdown";
+
+                updatePlayerCount();
+
+                updateReadyButton();
+
+                gameStatus.innerHTML =
+                    `🔥 ${data.count}`;
+
+            }
+
+
+            // ======================================
+            // ゲーム開始
+            // ======================================
+
+            if (data.type === "game-start") {
+
+                players =
+                    data.players || [];
+
+                coins =
+                    data.coins || [];
+
+                timeLeft =
+                    data.timeLeft || 60;
+
+                gamePhase =
+                    "playing";
+
+                updatePlayerCount();
+
+                updateReadyButton();
+
+                updateStatus();
+
+            }
+
+
+            // ======================================
+            // ゲーム中
+            // ======================================
+
+            if (data.type === "game-state") {
+
+                players =
+                    data.players || players;
+
+                coins =
+                    data.coins || coins;
+
+                timeLeft =
+                    data.timeLeft;
+
+                gamePhase =
+                    "playing";
+
+                updateStatus();
+
+            }
+
+
+            // ======================================
+            // プレイヤー更新
+            // ======================================
 
             if (data.type === "players") {
 
                 players =
                     data.players || [];
 
-                updateRanking();
+                updatePlayerCount();
+
+                updateStatus();
 
             }
 
-            // ====================
-            // ゲーム状態
-            // ====================
 
-            if (data.type === "game-state") {
-
-                coins =
-                    data.coins || [];
-
-                timeLeft =
-                    data.timeLeft;
-
-                players =
-                    data.players || players;
-
-                timeDisplay.textContent =
-                    `⏱️ ${timeLeft}秒`;
-
-                updateRanking();
-
-            }
-
-            // ====================
+            // ======================================
             // コイン取得
-            // ====================
+            // ======================================
 
             if (
                 data.type ===
@@ -296,21 +392,26 @@ joinButton.addEventListener("click", () => {
                 players =
                     data.players || players;
 
-                updateRanking();
+                updateStatus();
 
             }
 
-            // ====================
+
+            // ======================================
             // ゲーム終了
-            // ====================
+            // ======================================
 
             if (
                 data.type ===
                 "game-over"
             ) {
 
-                gameStarted = false;
-                gameOver = true;
+                gamePhase =
+                    "finished";
+
+                coins = [];
+
+                updateReadyButton();
 
                 showGameOver(
                     data.ranking || []
@@ -318,9 +419,10 @@ joinButton.addEventListener("click", () => {
 
             }
 
-            // ====================
+
+            // ======================================
             // エラー
-            // ====================
+            // ======================================
 
             if (data.type === "error") {
 
@@ -328,9 +430,10 @@ joinButton.addEventListener("click", () => {
 
             }
 
-            // ====================
+
+            // ======================================
             // チャット
-            // ====================
+            // ======================================
 
             if (data.type === "chat") {
 
@@ -344,11 +447,212 @@ joinButton.addEventListener("click", () => {
         }
     );
 
+
+    // ----------------------------------------------
+    // 接続エラー
+    // ----------------------------------------------
+
+    socket.addEventListener(
+        "error",
+        () => {
+
+            alert(
+                "サーバーとの接続でエラーが発生しました。"
+            );
+
+        }
+    );
+
+
+    // ----------------------------------------------
+    // 切断
+    // ----------------------------------------------
+
+    socket.addEventListener(
+        "close",
+        () => {
+
+            gameStatus.textContent =
+                "サーバーとの接続が切れました";
+
+            readyButton.disabled = true;
+
+        }
+    );
+
 });
 
-// ====================
-// 時間ベース移動
-// ====================
+
+// ==================================================
+// 準備完了ボタン
+// ==================================================
+
+readyButton.addEventListener(
+    "click",
+    () => {
+
+        if (
+            !socket ||
+            socket.readyState !==
+            WebSocket.OPEN
+        ) {
+
+            return;
+
+        }
+
+        if (gamePhase === "waiting") {
+
+            socket.send(
+                JSON.stringify({
+                    type: "ready"
+                })
+            );
+
+        }
+
+        else if (
+            gamePhase === "finished"
+        ) {
+
+            socket.send(
+                JSON.stringify({
+                    type: "next-game"
+                })
+            );
+
+        }
+
+    }
+);
+
+
+// ==================================================
+// プレイヤー人数表示
+// ==================================================
+
+function updatePlayerCount() {
+
+    playerCountDisplay.textContent =
+        `参加人数：${players.length} / ${maxPlayers}`;
+
+}
+
+
+// ==================================================
+// 準備ボタン表示
+// ==================================================
+
+function updateReadyButton() {
+
+    if (gamePhase === "waiting") {
+
+        const me =
+            players.find(
+                player =>
+                    player.id === myPlayerId
+            );
+
+        const ready =
+            me && me.ready;
+
+        if (ready) {
+
+            readyButton.textContent =
+                "準備完了済み";
+
+            readyButton.disabled = true;
+
+        } else {
+
+            readyButton.textContent =
+                "準備完了";
+
+            readyButton.disabled =
+                players.length < maxPlayers;
+
+        }
+
+    }
+
+    else if (
+        gamePhase === "countdown"
+    ) {
+
+        readyButton.textContent =
+            "ゲーム開始！";
+
+        readyButton.disabled = true;
+
+    }
+
+    else if (
+        gamePhase === "playing"
+    ) {
+
+        readyButton.textContent =
+            "ゲーム中";
+
+        readyButton.disabled = true;
+
+    }
+
+    else if (
+        gamePhase === "finished"
+    ) {
+
+        readyButton.textContent =
+            "次のゲームの準備完了";
+
+        readyButton.disabled = false;
+
+    }
+
+}
+
+
+// ==================================================
+// 状態表示
+// ==================================================
+
+function updateStatus() {
+
+    if (gamePhase === "waiting") {
+
+        const readyCount =
+            players.filter(
+                player => player.ready
+            ).length;
+
+        if (players.length < maxPlayers) {
+
+            gameStatus.textContent =
+                `👥 プレイヤーを待っています`;
+
+        } else {
+
+            gameStatus.textContent =
+                `✅ 準備完了：${readyCount} / ${maxPlayers}`;
+
+        }
+
+    }
+
+    else if (
+        gamePhase === "playing"
+    ) {
+
+        gameStatus.textContent =
+            `⏱️ ${timeLeft}秒`;
+
+    }
+
+}
+
+
+// ==================================================
+// ゲーム更新
+// ==================================================
 
 let lastTime =
     performance.now();
@@ -365,48 +669,65 @@ function update(currentTime) {
         currentTime;
 
     if (
-        !gameStarted ||
-        gameOver
+        gamePhase !==
+        "playing"
     ) {
+
         return;
+
     }
+
+
+    // ----------------------------------------------
+    // 移動速度
+    // ----------------------------------------------
 
     const speed = 240;
 
     let dx = 0;
     let dy = 0;
 
+
     if (
         keys["w"] ||
         keys["arrowup"]
     ) {
+
         dy -= 1;
+
     }
 
     if (
         keys["s"] ||
         keys["arrowdown"]
     ) {
+
         dy += 1;
+
     }
 
     if (
         keys["a"] ||
         keys["arrowleft"]
     ) {
+
         dx -= 1;
+
     }
 
     if (
         keys["d"] ||
         keys["arrowright"]
     ) {
+
         dx += 1;
+
     }
 
-    // ====================
-    // 斜め移動を一定速度にする
-    // ====================
+
+    // ----------------------------------------------
+    // 斜め移動を速くしない
+    // ----------------------------------------------
 
     if (
         dx !== 0 ||
@@ -423,16 +744,21 @@ function update(currentTime) {
         dy /= length;
 
         myPlayer.x +=
-            dx * speed * deltaTime;
+            dx *
+            speed *
+            deltaTime;
 
         myPlayer.y +=
-            dy * speed * deltaTime;
+            dy *
+            speed *
+            deltaTime;
 
     }
 
-    // ====================
+
+    // ----------------------------------------------
     // 画面外防止
-    // ====================
+    // ----------------------------------------------
 
     myPlayer.x =
         Math.max(
@@ -454,9 +780,10 @@ function update(currentTime) {
             )
         );
 
-    // ====================
-    // 自分の位置を送信
-    // ====================
+
+    // ----------------------------------------------
+    // サーバーへ位置送信
+    // ----------------------------------------------
 
     if (
         socket &&
@@ -480,34 +807,33 @@ function update(currentTime) {
 
     }
 
-    // ====================
-    // コイン当たり判定
-    // ====================
+
+    // ----------------------------------------------
+    // コインとの当たり判定
+    // ----------------------------------------------
+
+    const playerCenterX =
+        myPlayer.x +
+        myPlayer.size / 2;
+
+    const playerCenterY =
+        myPlayer.y +
+        myPlayer.size / 2;
 
     for (const coin of coins) {
 
-        const playerCenterX =
-            myPlayer.x +
-            myPlayer.size / 2;
-
-        const playerCenterY =
-            myPlayer.y +
-            myPlayer.size / 2;
-
-        const distanceX =
+        const dx =
             playerCenterX -
             coin.x;
 
-        const distanceY =
+        const dy =
             playerCenterY -
             coin.y;
 
         const distance =
             Math.sqrt(
-                distanceX *
-                    distanceX +
-                distanceY *
-                    distanceY
+                dx * dx +
+                dy * dy
             );
 
         if (distance < 25) {
@@ -540,9 +866,10 @@ function update(currentTime) {
 
 }
 
-// ====================
+
+// ==================================================
 // 描画
-// ====================
+// ==================================================
 
 function draw() {
 
@@ -553,9 +880,10 @@ function draw() {
         canvas.height
     );
 
-    // ====================
+
+    // ----------------------------------------------
     // コイン
-    // ====================
+    // ----------------------------------------------
 
     for (const coin of coins) {
 
@@ -581,7 +909,6 @@ function draw() {
 
         ctx.stroke();
 
-        // コインの「$」
         ctx.fillStyle =
             "black";
 
@@ -602,19 +929,20 @@ function draw() {
 
     }
 
-    // ====================
-    // 他プレイヤー
-    // ====================
 
-    for (
-        const player of players
-    ) {
+    // ----------------------------------------------
+    // 他プレイヤー
+    // ----------------------------------------------
+
+    for (const player of players) {
 
         if (
             player.id ===
             myPlayerId
         ) {
+
             continue;
+
         }
 
         ctx.fillStyle =
@@ -628,7 +956,9 @@ function draw() {
             30
         );
 
+
         // 名前
+
         ctx.fillStyle =
             "white";
 
@@ -641,14 +971,15 @@ function draw() {
         ctx.fillText(
             player.name || "名無し",
             player.x + 15,
-            player.y - 6
+            player.y - 7
         );
 
     }
 
-    // ====================
+
+    // ----------------------------------------------
     // 自分
-    // ====================
+    // ----------------------------------------------
 
     ctx.fillStyle =
         myColor;
@@ -659,6 +990,7 @@ function draw() {
         myPlayer.size,
         myPlayer.size
     );
+
 
     ctx.fillStyle =
         "white";
@@ -672,94 +1004,32 @@ function draw() {
     ctx.fillText(
         "YOU",
         myPlayer.x + 15,
-        myPlayer.y - 6
+        myPlayer.y - 7
     );
 
 }
 
-// ====================
-// ランキング更新
-// ====================
 
-function updateRanking() {
+// ==================================================
+// ゲームループ
+// ==================================================
 
-    const sortedPlayers =
-        [...players].sort(
-            (a, b) =>
-                b.score - a.score
-        );
+function gameLoop(currentTime) {
 
-    let html =
-        "<strong>🏆 ランキング</strong><br>";
+    update(currentTime);
 
-    sortedPlayers.forEach(
-        (player, index) => {
+    draw();
 
-            const medal =
-                index === 0
-                    ? "🥇"
-                    : index === 1
-                    ? "🥈"
-                    : index === 2
-                    ? "🥉"
-                    : `${index + 1}.`;
-
-            html += `
-                <div>
-                    ${medal}
-                    <span style="
-                        display:inline-block;
-                        width:12px;
-                        height:12px;
-                        background:${player.color};
-                        margin-right:5px;
-                    "></span>
-                    ${escapeHtml(player.name)}
-                   　
-                    ${player.score}枚
-                </div>
-            `;
-
-        }
+    requestAnimationFrame(
+        gameLoop
     );
 
-    rankingDisplay.innerHTML =
-        html;
-
-    const me =
-        players.find(
-            player =>
-                player.id ===
-                myPlayerId
-        );
-
-    if (me) {
-
-        scoreDisplay.textContent =
-            `🪙 自分: ${me.score}枚`;
-
-    }
-
 }
 
-// ====================
-// HTML安全化
-// ====================
 
-function escapeHtml(text) {
-
-    return String(text)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-
-}
-
-// ====================
+// ==================================================
 // ゲーム終了画面
-// ====================
+// ==================================================
 
 function showGameOver(ranking) {
 
@@ -769,8 +1039,11 @@ function showGameOver(ranking) {
         );
 
     if (old) {
+
         old.remove();
+
     }
+
 
     const result =
         document.createElement("div");
@@ -803,30 +1076,60 @@ function showGameOver(ranking) {
         "15px";
 
     result.style.fontSize =
-        "22px";
+        "20px";
 
     result.style.zIndex =
         "1000";
 
+    result.style.minWidth =
+        "280px";
+
+
     let html =
-        "<strong>🏁 ゲーム終了！</strong><br><br>";
+        "<strong>🏆 GAME OVER</strong><br><br>";
 
-    ranking
-        .slice(0, 10)
-        .forEach((player) => {
 
-            html += `
-                ${player.rank}位　
-                ${escapeHtml(player.name)}
-                　
-                ${player.score}枚
-                <br>
-            `;
+    ranking.forEach((player) => {
 
-        });
+        let medal = "";
+
+        if (player.rank === 1) {
+
+            medal = "🥇";
+
+        } else if (
+            player.rank === 2
+        ) {
+
+            medal = "🥈";
+
+        } else if (
+            player.rank === 3
+        ) {
+
+            medal = "🥉";
+
+        }
+
+
+        html +=
+            `${medal} ${player.rank}位　` +
+            `${escapeHtml(player.name)}　` +
+            `${player.score}枚<br>`;
+
+    });
+
+
+    html +=
+        `<br>
+        <small>
+        全員が準備完了すると次のゲームが始まります
+        </small>`;
+
 
     result.innerHTML =
         html;
+
 
     document.body.appendChild(
         result
@@ -834,25 +1137,26 @@ function showGameOver(ranking) {
 
 }
 
-// ====================
-// ゲームループ
-// ====================
 
-function gameLoop(currentTime) {
+// ==================================================
+// HTML安全化
+// ==================================================
 
-    update(currentTime);
+function escapeHtml(text) {
 
-    draw();
-
-    requestAnimationFrame(
-        gameLoop
-    );
+    return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 
 }
 
-// ====================
+
+// ==================================================
 // チャット
-// ====================
+// ==================================================
 
 const chatInput =
     document.getElementById(
@@ -868,6 +1172,7 @@ const chatMessages =
     document.getElementById(
         "chatMessages"
     );
+
 
 function addChatMessage(
     name,
@@ -891,13 +1196,16 @@ function addChatMessage(
 
 }
 
+
 function sendChat() {
 
     const text =
         chatInput.value.trim();
 
     if (!text) {
+
         return;
+
     }
 
     if (
@@ -918,6 +1226,7 @@ function sendChat() {
         JSON.stringify({
 
             type: "chat",
+
             text: text
 
         })
@@ -927,10 +1236,12 @@ function sendChat() {
 
 }
 
+
 chatSend.addEventListener(
     "click",
     sendChat
 );
+
 
 chatInput.addEventListener(
     "keydown",
