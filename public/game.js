@@ -66,22 +66,21 @@ mobileControls.querySelectorAll("button").forEach((button) => {
 
     const key = button.dataset.key;
 
-    // 指を押した
     button.addEventListener("pointerdown", (event) => {
-        event.preventDefault();
-        keys[key] = true;
-    });
+    event.preventDefault();
+    button.setPointerCapture(event.pointerId);
+    keys[key] = true;
+});
 
-    // 指を離した
-    button.addEventListener("pointerup", (event) => {
-        event.preventDefault();
-        keys[key] = false;
-    });
+button.addEventListener("pointerup", (event) => {
+    event.preventDefault();
+    keys[key] = false;
+});
 
-    // ボタンの外に指が行った場合
-    button.addEventListener("pointerleave", () => {
-        keys[key] = false;
-    });
+button.addEventListener("pointercancel", (event) => {
+    event.preventDefault();
+    keys[key] = false;
+});
 
     // タッチキャンセル
     button.addEventListener("pointercancel", () => {
