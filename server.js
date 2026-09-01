@@ -56,6 +56,7 @@ function createCoin() {
         x: Math.floor(Math.random() * 760) + 20,
         y: Math.floor(Math.random() * 460) + 20
     };
+
 }
 
 // ====================
@@ -83,6 +84,7 @@ function createRoom(maxPlayers, gameMode) {
         timer: null
 
     };
+
 }
 
 // ====================
@@ -117,13 +119,18 @@ function getPlayerList(room) {
 
 function broadcastRoom(room, data) {
 
-    const message = JSON.stringify(data);
+    const message =
+        JSON.stringify(data);
 
-    for (const player of room.players.values()) {
+    for (
+        const player of
+        room.players.values()
+    ) {
 
         if (
             player.ws &&
-            player.ws.readyState === WebSocket.OPEN
+            player.ws.readyState ===
+            WebSocket.OPEN
         ) {
 
             player.ws.send(message);
@@ -144,13 +151,17 @@ function sendWaitingState(room) {
 
         type: "waiting",
 
-        players: getPlayerList(room),
+        players:
+            getPlayerList(room),
 
-        playerCount: room.players.size,
+        playerCount:
+            room.players.size,
 
-        maxPlayers: room.maxPlayers,
-     
-        gameMode: room.gameMode   
+        maxPlayers:
+            room.maxPlayers,
+
+        gameMode:
+            room.gameMode
 
     });
 
@@ -162,15 +173,21 @@ function sendWaitingState(room) {
 
 function checkReady(room) {
 
-    // 人数が足りない場合
-    if (room.players.size < room.maxPlayers) {
+    // 参加人数が足りない
+    if (
+        room.players.size <
+        room.maxPlayers
+    ) {
 
         return;
 
     }
 
     // 全員準備完了しているか
-    for (const player of room.players.values()) {
+    for (
+        const player of
+        room.players.values()
+    ) {
 
         if (!player.ready) {
 
@@ -180,8 +197,11 @@ function checkReady(room) {
 
     }
 
-    // すでに開始処理中なら何もしない
-    if (room.phase !== "waiting") {
+    // 待機中以外なら開始しない
+    if (
+        room.phase !==
+        "waiting"
+    ) {
 
         return;
 
@@ -192,52 +212,61 @@ function checkReady(room) {
 }
 
 // ====================
-// カウントダウン開始
+// カウントダウン
 // ====================
 
 function startCountdown(room) {
 
-    room.phase = "countdown";
+    room.phase =
+        "countdown";
 
-    room.countdown = COUNTDOWN_TIME;
+    room.countdown =
+        COUNTDOWN_TIME;
 
     broadcastRoom(room, {
 
         type: "countdown",
 
-        count: room.countdown,
+        count:
+            room.countdown,
 
-        players: getPlayerList(room)
+        players:
+            getPlayerList(room)
 
     });
 
-    room.timer = setInterval(() => {
+    room.timer =
+        setInterval(() => {
 
-        room.countdown--;
+            room.countdown--;
 
-        if (room.countdown > 0) {
+            if (
+                room.countdown > 0
+            ) {
 
-            broadcastRoom(room, {
+                broadcastRoom(room, {
 
-                type: "countdown",
+                    type: "countdown",
 
-                count: room.countdown,
+                    count:
+                        room.countdown,
 
-                players: getPlayerList(room)
+                    players:
+                        getPlayerList(room)
 
-            });
+                });
 
-            return;
+                return;
 
-        }
+            }
 
-        clearInterval(room.timer);
+            clearInterval(room.timer);
 
-        room.timer = null;
+            room.timer = null;
 
-        startGame(room);
+            startGame(room);
 
-    }, 1000);
+        }, 1000);
 
 }
 
@@ -247,23 +276,37 @@ function startCountdown(room) {
 
 function startGame(room) {
 
-    room.phase = "playing";
+    room.phase =
+        "playing";
 
-    room.timeLeft = GAME_TIME;
+    room.timeLeft =
+        GAME_TIME;
 
     room.coins = [];
 
-    // スコアを0にする
-    for (const player of room.players.values()) {
+    // スコアをリセット
+    for (
+        const player of
+        room.players.values()
+    ) {
 
         player.score = 0;
+
+        // 次回のために準備状態を解除
+        player.ready = false;
 
     }
 
     // コイン生成
-    for (let i = 0; i < START_COINS; i++) {
+    for (
+        let i = 0;
+        i < START_COINS;
+        i++
+    ) {
 
-        room.coins.push(createCoin());
+        room.coins.push(
+            createCoin()
+        );
 
     }
 
@@ -271,37 +314,46 @@ function startGame(room) {
 
         type: "game-start",
 
-        timeLeft: room.timeLeft,
+        timeLeft:
+            room.timeLeft,
 
-        coins: room.coins,
+        coins:
+            room.coins,
 
-        players: getPlayerList(room)
+        players:
+            getPlayerList(room)
 
     });
 
-    room.timer = setInterval(() => {
+    room.timer =
+        setInterval(() => {
 
-        room.timeLeft--;
+            room.timeLeft--;
 
-        broadcastRoom(room, {
+            broadcastRoom(room, {
 
-            type: "game-state",
+                type: "game-state",
 
-            timeLeft: room.timeLeft,
+                timeLeft:
+                    room.timeLeft,
 
-            coins: room.coins,
+                coins:
+                    room.coins,
 
-            players: getPlayerList(room)
+                players:
+                    getPlayerList(room)
 
-        });
+            });
 
-        if (room.timeLeft <= 0) {
+            if (
+                room.timeLeft <= 0
+            ) {
 
-            endGame(room);
+                endGame(room);
 
-        }
+            }
 
-    }, 1000);
+        }, 1000);
 
 }
 
@@ -313,63 +365,63 @@ function endGame(room) {
 
     if (room.timer) {
 
-        clearInterval(room.timer);
+        clearInterval(
+            room.timer
+        );
 
         room.timer = null;
 
     }
 
-    room.phase = "finished";
+    room.phase =
+        "finished";
 
     const ranking =
         [...room.players.values()]
-            .sort((a, b) => b.score - a.score)
-            .map((player, index) => ({
+            .sort(
+                (a, b) =>
+                    b.score - a.score
+            )
+            .map(
+                (player, index) => ({
 
-                rank: index + 1,
+                    rank:
+                        index + 1,
 
-                id: player.id,
+                    id:
+                        player.id,
 
-                name: player.name,
+                    name:
+                        player.name,
 
-                score: player.score,
+                    score:
+                        player.score,
 
-                color: player.color
+                    color:
+                        player.color
 
-            }));
+                })
+            );
+
+    // 次のゲームでは
+    // 全員もう一度準備する
+    for (
+        const player of
+        room.players.values()
+    ) {
+
+        player.ready = false;
+
+    }
 
     broadcastRoom(room, {
 
         type: "game-over",
 
-        ranking: ranking
+        ranking:
+            ranking
 
     });
-
-}
-
-// ====================
-// 次のゲーム準備
-// ====================
-
-function prepareNextGame(room) {
-
-    room.phase = "waiting";
-
-    room.countdown = COUNTDOWN_TIME;
-
-    room.timeLeft = GAME_TIME;
-
-    room.coins = [];
-
-    for (const player of room.players.values()) {
-
-        player.ready = false;
-        player.score = 0;
-
-    }
-
-    sendWaitingState(room);
 
 }
 
@@ -389,7 +441,8 @@ wss.on("connection", (ws) => {
 
         try {
 
-            data = JSON.parse(message);
+            data =
+                JSON.parse(message);
 
         } catch {
 
@@ -401,21 +454,28 @@ wss.on("connection", (ws) => {
         // 参加
         // ====================
 
-        if (data.type === "join") {
+        if (
+            data.type ===
+            "join"
+        ) {
 
             const roomCode =
-                String(data.room || "").trim();
+                String(
+                    data.room || ""
+                ).trim();
 
             if (!roomCode) {
 
-                ws.send(JSON.stringify({
+                ws.send(
+                    JSON.stringify({
 
-                    type: "error",
+                        type: "error",
 
-                    message:
-                        "ルーム番号を入力してください。"
+                        message:
+                            "ルーム番号を入力してください。"
 
-                }));
+                    })
+                );
 
                 return;
 
@@ -427,12 +487,17 @@ wss.on("connection", (ws) => {
             if (!rooms.has(roomCode)) {
 
                 let maxPlayers =
-                    Number(data.maxPlayers);
+                    Number(
+                        data.maxPlayers
+                    );
 
                 if (
-                    !Number.isInteger(maxPlayers) ||
-                    maxPlayers < 2 ||
-                    maxPlayers > MAX_PLAYERS
+                    !Number.isInteger(
+                        maxPlayers
+                    ) ||
+                    maxPlayers < 1 ||
+                    maxPlayers >
+                        MAX_PLAYERS
                 ) {
 
                     maxPlayers = 4;
@@ -441,56 +506,74 @@ wss.on("connection", (ws) => {
 
                 room =
                     createRoom(
-                   maxPlayers,
-                   data.gameMode || "coin"
-                 );
-                rooms.set(roomCode, room);
+                        maxPlayers,
+                        data.gameMode ||
+                            "coin"
+                    );
+
+                rooms.set(
+                    roomCode,
+                    room
+                );
 
             } else {
 
-                room = rooms.get(roomCode);
+                room =
+                    rooms.get(
+                        roomCode
+                    );
 
             }
 
-            // 人数制限
+            // 満員
             if (
                 room.players.size >=
                 room.maxPlayers
             ) {
 
-                ws.send(JSON.stringify({
+                ws.send(
+                    JSON.stringify({
 
-                    type: "error",
+                        type: "error",
 
-                    message:
-                        `このルームは満員です。${room.maxPlayers}人まで参加できます。`
+                        message:
+                            `このルームは満員です。${room.maxPlayers}人まで参加できます。`
 
-                }));
-
-                return;
-
-            }
-
-            // ゲーム中は途中参加させない
-            if (room.phase === "playing") {
-
-                ws.send(JSON.stringify({
-
-                    type: "error",
-
-                    message:
-                        "ゲーム中です。次のゲームまでお待ちください。"
-
-                }));
+                    })
+                );
 
                 return;
 
             }
 
-            currentRoom = room;
+            // ゲーム中は途中参加禁止
+            if (
+                room.phase ===
+                "playing"
+            ) {
+
+                ws.send(
+                    JSON.stringify({
+
+                        type: "error",
+
+                        message:
+                            "ゲーム中です。次のゲームまでお待ちください。"
+
+                    })
+                );
+
+                return;
+
+            }
+
+            currentRoom =
+                room;
 
             playerId =
-                Math.random().toString(36).substring(2) +
+                Math.random()
+                    .toString(36)
+                    .substring(2) +
                 Date.now();
 
             const playerNumber =
@@ -498,29 +581,44 @@ wss.on("connection", (ws) => {
 
             const player = {
 
-                id: playerId,
+                id:
+                    playerId,
 
                 name:
-                    String(data.name || "名無し")
-                        .substring(0, 20),
+                    String(
+                        data.name ||
+                        "名無し"
+                    ).substring(
+                        0,
+                        20
+                    ),
 
                 x:
                     100 +
-                    (playerNumber % 5) * 130,
+                    (playerNumber % 5) *
+                    130,
 
                 y:
                     80 +
-                    Math.floor(playerNumber / 5) * 90,
+                    Math.floor(
+                        playerNumber / 5
+                    ) *
+                    90,
 
-                score: 0,
+                score:
+                    0,
 
-                ready: false,
+                ready:
+                    false,
 
                 color:
-                    playerColors[playerNumber] ||
+                    playerColors[
+                        playerNumber
+                    ] ||
                     "white",
 
-                ws: ws
+                ws:
+                    ws
 
             };
 
@@ -534,53 +632,70 @@ wss.on("connection", (ws) => {
                 `(${room.players.size}/${room.maxPlayers})`
             );
 
-            // 自分に情報
-            ws.send(JSON.stringify({
+            // 自分に参加情報
+            ws.send(
+                JSON.stringify({
 
-                type: "joined",
+                    type:
+                        "joined",
 
-                playerId: playerId,
+                    playerId:
+                        playerId,
 
-                color: player.color,
+                    color:
+                        player.color,
 
-                players:
-                    getPlayerList(room),
+                    players:
+                        getPlayerList(
+                            room
+                        ),
 
-                playerCount:
-                    room.players.size,
+                    playerCount:
+                        room.players.size,
 
-                maxPlayers:
-                    room.maxPlayers,
-                gameMode:
-                    room.gameMode,
-                phase:
-                    room.phase,
+                    maxPlayers:
+                        room.maxPlayers,
 
-                coins:
-                    room.coins,
+                    gameMode:
+                        room.gameMode,
 
-                timeLeft:
-                    room.timeLeft
+                    phase:
+                        room.phase,
 
-            }));
+                    coins:
+                        room.coins,
 
-            sendWaitingState(room);
+                    timeLeft:
+                        room.timeLeft
+
+                })
+            );
+
+            sendWaitingState(
+                room
+            );
 
             return;
+
         }
 
         // ====================
         // ルーム未参加
         // ====================
 
-        if (!currentRoom || !playerId) {
+        if (
+            !currentRoom ||
+            !playerId
+        ) {
 
             return;
 
         }
 
         const player =
-            currentRoom.players.get(playerId);
+            currentRoom.players.get(
+                playerId
+            );
 
         if (!player) {
 
@@ -592,22 +707,27 @@ wss.on("connection", (ws) => {
         // 準備完了
         // ====================
 
-        if (data.type === "ready") {
+        if (
+            data.type ===
+            "ready"
+        ) {
 
-            // 参加人数が揃っていない
             if (
                 currentRoom.players.size <
                 currentRoom.maxPlayers
             ) {
 
-                ws.send(JSON.stringify({
+                ws.send(
+                    JSON.stringify({
 
-                    type: "error",
+                        type:
+                            "error",
 
-                    message:
-                        "参加人数が揃っていません。"
+                        message:
+                            "参加人数が揃っていません。"
 
-                }));
+                    })
+                );
 
                 return;
 
@@ -622,20 +742,29 @@ wss.on("connection", (ws) => {
 
             }
 
-            player.ready = true;
+            player.ready =
+                true;
 
-            sendWaitingState(currentRoom);
+            sendWaitingState(
+                currentRoom
+            );
 
-            checkReady(currentRoom);
+            checkReady(
+                currentRoom
+            );
 
             return;
+
         }
 
         // ====================
         // プレイヤー移動
         // ====================
 
-        if (data.type === "player") {
+        if (
+            data.type ===
+            "player"
+        ) {
 
             if (
                 currentRoom.phase !==
@@ -647,21 +776,30 @@ wss.on("connection", (ws) => {
             }
 
             player.x =
-                Number(data.x) || player.x;
+                Number(data.x) ||
+                player.x;
 
             player.y =
-                Number(data.y) || player.y;
+                Number(data.y) ||
+                player.y;
 
-            broadcastRoom(currentRoom, {
+            broadcastRoom(
+                currentRoom,
+                {
 
-                type: "players",
+                    type:
+                        "players",
 
-                players:
-                    getPlayerList(currentRoom)
+                    players:
+                        getPlayerList(
+                            currentRoom
+                        )
 
-            });
+                }
+            );
 
             return;
+
         }
 
         // ====================
@@ -683,16 +821,21 @@ wss.on("connection", (ws) => {
             }
 
             const coinId =
-                String(data.coinId);
+                String(
+                    data.coinId
+                );
 
             const coinIndex =
                 currentRoom.coins.findIndex(
                     coin =>
-                        coin.id === coinId
+                        coin.id ===
+                        coinId
                 );
 
             // すでに取得済み
-            if (coinIndex === -1) {
+            if (
+                coinIndex === -1
+            ) {
 
                 return;
 
@@ -712,60 +855,110 @@ wss.on("connection", (ws) => {
                 createCoin()
             );
 
-            broadcastRoom(currentRoom, {
+            broadcastRoom(
+                currentRoom,
+                {
 
-                type:
-                    "coin-collected",
+                    type:
+                        "coin-collected",
 
-                playerId:
-                    playerId,
+                    playerId:
+                        playerId,
 
-                coins:
-                    currentRoom.coins,
+                    coins:
+                        currentRoom.coins,
 
-                players:
-                    getPlayerList(currentRoom)
+                    players:
+                        getPlayerList(
+                            currentRoom
+                        )
 
-            });
-
-            return;
-        }
-
-        // ====================
-        // 次のゲーム
-        // ====================
-
-        if (
-            data.type ===
-            "next-game"
-        ) {
-
-            if (
-                currentRoom.phase !==
-                "finished"
-            ) {
-
-                return;
-
-            }
-
-            prepareNextGame(
-                currentRoom
+                }
             );
 
             return;
+
         }
+
+        // ====================
+// 次のゲーム
+// ====================
+
+if (
+    data.type ===
+    "next-game"
+) {
+
+    // GAME OVER後、または
+    // 次のゲームの待機中だけ受付
+    if (
+        currentRoom.phase !== "finished" &&
+        currentRoom.phase !== "waiting"
+    ) {
+
+        return;
+
+    }
+
+    // GAME OVERから最初に
+    // 次のゲームへ進むとき
+    if (
+        currentRoom.phase === "finished"
+    ) {
+
+        currentRoom.phase = "waiting";
+
+        // 全員の準備状態をリセット
+        for (
+            const p of
+            currentRoom.players.values()
+        ) {
+
+            p.ready = false;
+
+        }
+
+    }
+
+    // このプレイヤーを準備完了にする
+    player.ready = true;
+
+    console.log(
+        `次のゲーム準備: ${player.name}`
+    );
+
+    // 現在の準備状況を全員へ送信
+    sendWaitingState(
+        currentRoom
+    );
+
+    // 全員準備完了ならゲーム開始
+    checkReady(
+        currentRoom
+    );
+
+    return;
+
+}
 
         // ====================
         // チャット
         // ====================
 
-        if (data.type === "chat") {
+        if (
+            data.type ===
+            "chat"
+        ) {
 
             const text =
-                String(data.text || "")
-                    .trim()
-                    .substring(0, 200);
+                String(
+                    data.text || ""
+                )
+                .trim()
+                .substring(
+                    0,
+                    200
+                );
 
             if (!text) {
 
@@ -777,7 +970,8 @@ wss.on("connection", (ws) => {
                 currentRoom,
                 {
 
-                    type: "chat",
+                    type:
+                        "chat",
 
                     name:
                         player.name,
@@ -789,6 +983,7 @@ wss.on("connection", (ws) => {
             );
 
             return;
+
         }
 
     });
@@ -825,36 +1020,52 @@ wss.on("connection", (ws) => {
 
         }
 
-        // ゲーム中に人が抜けた場合
-        // 人数が足りなくなったら停止
+        // 誰かが抜けたら
+        // 残った人の準備状態をリセット
         if (
             currentRoom.phase ===
-                "countdown" &&
-            currentRoom.players.size <
-                currentRoom.maxPlayers
+            "waiting" ||
+            currentRoom.phase ===
+            "finished" ||
+            currentRoom.phase ===
+            "countdown"
         ) {
-
-            if (currentRoom.timer) {
-
-                clearInterval(
-                    currentRoom.timer
-                );
-
-                currentRoom.timer = null;
-
-            }
-
-            currentRoom.phase =
-                "waiting";
 
             for (
                 const p of
                 currentRoom.players.values()
             ) {
 
-                p.ready = false;
+                p.ready =
+                    false;
 
             }
+
+        }
+
+        // カウントダウン中に人数不足
+        if (
+            currentRoom.phase ===
+            "countdown" &&
+            currentRoom.players.size <
+            currentRoom.maxPlayers
+        ) {
+
+            if (
+                currentRoom.timer
+            ) {
+
+                clearInterval(
+                    currentRoom.timer
+                );
+
+                currentRoom.timer =
+                    null;
+
+            }
+
+            currentRoom.phase =
+                "waiting";
 
         }
 
@@ -868,7 +1079,9 @@ wss.on("connection", (ws) => {
             0
         ) {
 
-            if (currentRoom.timer) {
+            if (
+                currentRoom.timer
+            ) {
 
                 clearInterval(
                     currentRoom.timer
@@ -888,7 +1101,9 @@ wss.on("connection", (ws) => {
                     currentRoom
                 ) {
 
-                    rooms.delete(code);
+                    rooms.delete(
+                        code
+                    );
 
                 }
 
