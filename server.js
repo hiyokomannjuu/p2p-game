@@ -105,9 +105,13 @@ function getPlayerList(room) {
 
         score: player.score,
 
+        hp: player.hp,
+
         color: player.color,
 
-        ready: player.ready
+        ready: player.ready,
+
+        team: player.team
 
     }));
 
@@ -277,6 +281,14 @@ function startGame(room) {
 
     room.coins = [];
 
+    // FPS用のチームキル数
+    if (room.gameMode === "fps") {
+    room.teamKills = {
+        A: 0,
+        B: 0
+    };
+}
+
     // スコアをリセット
     for (
         const player of
@@ -284,13 +296,18 @@ function startGame(room) {
     ) {
 
         player.score = 0;
+        player.hp = 100;
+
+        // FPSでは復活時の無敵時間を管理する
+       player.invulnerableUntil = 0;
 
         // 次回のために準備状態を解除
         player.ready = false;
-
     }
 
     // コイン生成
+    if (room.gameMode !== "fps") {
+
     for (
         let i = 0;
         i < START_COINS;
@@ -303,6 +320,7 @@ function startGame(room) {
 
     }
 
+}
     broadcastRoom(room, {
 
         type: "game-start",
@@ -572,7 +590,7 @@ wss.on("connection", (ws) => {
             const playerNumber =
                 room.players.size;
 
-            const player = {
+               const player = {
 
                 id:
                     playerId,
@@ -585,6 +603,12 @@ wss.on("connection", (ws) => {
                         0,
                         20
                     ),
+
+                team:
+                       data.gameMode === "fps" &&
+                      (data.team === "A" || data.team === "B")
+                       ? data.team
+                    : null,
 
                 x:
                     100 +
@@ -600,6 +624,9 @@ wss.on("connection", (ws) => {
 
                 score:
                     0,
+
+                hp:
+                   100,
 
                 ready:
                     false,
@@ -750,6 +777,49 @@ wss.on("connection", (ws) => {
 
         }
 
+          // ====================
+          // FPS チーム変更
+          // ====================
+
+  if (data.type === "change-team") {
+
+    // FPSモード以外では無視
+    if (currentRoom.gameMode !== "fps") {
+        return;
+    }
+
+    // ゲーム開始後は変更禁止
+    if (currentRoom.phase !== "waiting") {
+        return;
+    }
+
+    // AかB以外は無視
+    if (
+        data.team !== "A" &&
+        data.team !== "B"
+    ) {
+        return;
+    }
+
+    // チームを変更
+    player.team = data.team;
+
+    console.log(
+        `${player.name} → チーム${player.team}`
+    );
+
+    // 全員に最新のプレイヤー情報を送る
+    broadcastRoom(
+        currentRoom,
+        {
+            type: "players",
+            players: getPlayerList(currentRoom)
+        }
+    );
+
+    return;
+           }
+
         // ====================
         // プレイヤー移動
         // ====================
@@ -795,14 +865,97 @@ wss.on("connection", (ws) => {
 
         }
 
+        // ===================
+        // FPS 射撃
+        // ===================
+
+        if (data.type === "fps-shoot") {
+
+    // FPS以外では使えない
+    if (currentRoom.gameMode !== "fps") {
+        return;
+    }
+
+    // ゲーム中以外では撃てない
+    if (currentRoom.phase !== "playing") {
+        return;
+    }
+
+    // 射撃方向
+    const direction = data.direction;
+
+    // 方向がない・おかしい場合
+    if (
+        !direction ||
+        typeof direction.x !== "number" ||
+        typeof direction.y !== "number"
+    ) {
+        return;
+    }
+
+    // 弾の配列を用意
+    if (!currentRoom.bullets) {
+        currentRoom.bullets = [];
+    }
+
+    // 弾を作る
+    const bullet = {
+
+        id:
+            Math.random()
+                .toString(36)
+                .substring(2) +
+            Date.now(),
+
+        // プレイヤーの中央から発射
+        x:
+            player.x + 15,
+
+        y:
+            player.y + 15,
+
+        // 飛ぶ方向
+        dx:
+            direction.x,
+
+        dy:
+            direction.y,
+
+        // 誰が撃ったか
+        ownerId:
+            player.id,
+
+        // チーム
+        team:
+            player.team,
+
+        // ダメージ
+        damage:
+            25
+
+    };
+
+    // 弾を追加
+    currentRoom.bullets.push(
+        bullet
+    );
+
+    console.log(
+        `${player.name} が射撃！`,
+        bullet
+    );
+
+    return;
+}
+    
         // ====================
         // コイン取得
         // ====================
 
-        if (
+            if (
             data.type ===
             "collect-coin"
-        ) {
+         ) {
 
             if (
                 currentRoom.phase !==
@@ -873,9 +1026,104 @@ wss.on("connection", (ws) => {
 
         }
 
-        // ====================
-// 次のゲーム
-// ====================
+                // ====================
+                // FPS 射撃
+                // ====================
+
+              if (
+            data.type ===
+            "fps-shoot"
+              ) {
+
+                // FPS以外では撃てない
+              if (
+                currentRoom.gameMode !==
+                "fps"
+             ) {
+
+                 return;
+
+             }
+
+                 // ゲーム中以外は撃てない
+            if (
+                currentRoom.phase !==
+                "playing"
+            ) {
+
+                return;
+
+            }
+
+                 // 射撃方向
+            const direction =
+                data.direction || {
+                    x: 0,
+                    y: -1
+                };
+
+            const dx =
+                Number(direction.x) || 0;
+
+            const dy =
+                Number(direction.y) || 0;
+
+                 // プレイヤーの中心から弾を出す
+            const bullet = {
+
+                id:
+                    Math.random()
+                        .toString(36)
+                        .substring(2) +
+                    Date.now(),
+
+                x:
+                    player.x + 15,
+
+                y:
+                    player.y + 15,
+
+                dx:
+                    dx,
+
+                dy:
+                    dy,
+
+                ownerId:
+                    playerId,
+
+                team:
+                    player.team,
+
+                damage:
+                    25
+
+            };
+
+                  // 弾を追加
+            if (
+                !currentRoom.bullets
+            ) {
+
+                currentRoom.bullets = [];
+
+            }
+
+            currentRoom.bullets.push(
+                bullet
+            );
+
+            console.log(
+                `射撃: ${player.name}`
+            );
+
+            return;
+
+        }
+
+                   // ====================
+                   // 次のゲーム
+                   // ====================
 
 if (
     data.type ===
@@ -1111,6 +1359,190 @@ if (
     });
 
 });
+
+// ==================================================
+// FPS 弾の更新
+// ==================================================
+
+setInterval(() => {
+
+    for (const currentRoom of rooms.values()) {
+
+        // FPS以外は無視
+        if (currentRoom.gameMode !== "fps") {
+            continue;
+        }
+
+        // 弾がなければ作る
+        if (!currentRoom.bullets) {
+            currentRoom.bullets = [];
+        }
+
+        // 弾を動かす
+        for (
+            let i = currentRoom.bullets.length - 1;
+            i >= 0;
+            i--
+        ) {
+
+            const bullet =
+                currentRoom.bullets[i];
+
+            // 弾の速度
+            const bulletSpeed = 10;
+
+            bullet.x +=
+                bullet.dx * bulletSpeed;
+
+            bullet.y +=
+                bullet.dy * bulletSpeed;
+
+
+            // --------------------------------
+            // 画面外なら削除
+            // --------------------------------
+
+            if (
+                bullet.x < 0 ||
+                bullet.x > 800 ||
+                bullet.y < 0 ||
+                bullet.y > 500
+            ) {
+
+                currentRoom.bullets.splice(i, 1);
+
+                continue;
+
+            }
+
+
+            // --------------------------------
+            // プレイヤーとの当たり判定
+            // --------------------------------
+
+            for (
+                const target of currentRoom.players.values()
+            ) {
+
+                // 自分には当たらない
+                if (
+                    target.id ===
+                    bullet.ownerId
+                ) {
+                    continue;
+                }
+                // リスポーン直後の3秒間は無敵
+                if (
+                    target.invulnerableUntil &&
+                   Date.now() < target.invulnerableUntil
+                     ) {
+                  continue;
+                   }
+                // 同じチームには当たらない
+                if (
+                    bullet.team &&
+                    target.team &&
+                    bullet.team === target.team
+                ) {
+                    continue;
+                }
+
+                const hit =
+                    bullet.x >= target.x &&
+                    bullet.x <= target.x + 30 &&
+                    bullet.y >= target.y &&
+                    bullet.y <= target.y + 30;
+
+                if (hit) {
+
+                    // HPを減らす
+                    target.hp =
+                        (target.hp ?? 100) -
+                        (bullet.damage ?? 25);
+
+                    // HPが0未満にならないようにする
+                    target.hp =
+                        Math.max(
+                            0,
+                            target.hp
+                        );
+
+                    console.log(
+                        `${target.name} HP: ${target.hp}`
+                    );
+
+                    // --------------------------------
+                    // HPが0になったら死亡・リスポーン
+                    // --------------------------------
+
+                  if (target.hp <= 0) {
+
+                     // 倒したプレイヤーのチームにキルを加算
+    if (bullet.team === "A") {
+        currentRoom.teamKills.A++;
+    } else if (bullet.team === "B") {
+        currentRoom.teamKills.B++;
+    }
+
+    console.log(
+        `${target.name} が倒された！`
+    );
+
+    // チームのスポーン位置へ戻す
+    if (target.team === "A") {
+        target.x = 100;
+        target.y = 220;
+    } else {
+        target.x = 670;
+        target.y = 220;
+    }
+
+    // HPを全回復
+    target.hp = 100;
+
+    // 3秒間無敵
+    target.invulnerableUntil =
+        Date.now() + 3000;
+
+    console.log(
+        `${target.name} がリスポーン！`
+    );
+}
+
+                    // 弾を削除
+                    currentRoom.bullets.splice(i, 1);
+
+                    break;
+
+                }
+
+            }
+
+        }
+
+
+        // --------------------------------
+        // 全員に弾とプレイヤーを送信
+        // --------------------------------
+
+        broadcastRoom(
+            currentRoom,
+            {
+                type: "fps-state",
+
+                bullets:
+                    currentRoom.bullets,
+
+                players:
+                    getPlayerList(
+                        currentRoom
+                    )
+            }
+        );
+
+    }
+
+}, 16);
 
 // ====================
 // サーバー起動
