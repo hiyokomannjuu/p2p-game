@@ -49,6 +49,10 @@
         🪙 コイン集め
     </option>
 
+    <option value="fps">
+    🔫 2D FPS
+    </option>
+
     <option value="battle">
         ⚔️ バトル
     </option>
@@ -60,6 +64,29 @@
 </select>
 
 <br><br>
+<!-- ==================== -->
+<!-- FPS チーム選択 -->
+<!-- ==================== -->
+
+<div id="teamSelect" style="display: none;">
+
+    <p>🔫 チームを選択</p>
+
+    <button id="teamAButton">
+        🔵 Aチーム
+    </button>
+
+    <button id="teamBButton">
+        🔴 Bチーム
+    </button>
+
+    <p id="myTeamDisplay">
+        チーム：未選択
+    </p>
+
+</div>
+
+<br>
 
 
 <!-- ==================== -->
@@ -100,7 +127,7 @@
     <!-- ゲーム画面 -->
     <!-- ==================== -->
 
-    <div id="game">
+      <div id="game">
 
         <!-- ゲーム状態 -->
         <div id="gameStatus">
@@ -159,6 +186,7 @@
 
    <script src="coin.js"></script>
    <script src="game.js"></script>
+   <script src="fps.js"></script>
 </body>
 
 </html>
