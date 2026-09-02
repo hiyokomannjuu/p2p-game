@@ -185,7 +185,10 @@ joinButton.addEventListener("click", () => {
                 name: name,
 
                 maxPlayers: selectedPlayers,
-                gameMode: gameModeInput.value
+                
+                gameMode: gameModeInput.value,
+                
+                team: typeof myTeam !== "undefined" ? myTeam : null
 
             })
         );
@@ -197,8 +200,7 @@ joinButton.addEventListener("click", () => {
     // サーバーからのメッセージ
     // ----------------------------------------------
 
-    socket.addEventListener(
-        "message",
+    socket.addEventListener("message",
         (event) => {
 
             let data;
@@ -214,6 +216,19 @@ joinButton.addEventListener("click", () => {
 
             }
 
+            // ======================================
+            // FPS 弾の受信
+            // ======================================
+
+             if (data.type === "fps-state") {
+
+                fpsBullets =
+                        data.bullets || [];
+
+                players =
+                        data.players || [];
+
+              }
 
             // ======================================
             // 参加完了
@@ -273,24 +288,24 @@ joinButton.addEventListener("click", () => {
 
             if (data.type === "waiting") {
 
-    players =
+     players =
         data.players || [];
 
-    maxPlayers =
+     maxPlayers =
         data.maxPlayers ||
         maxPlayers;
 
-    gameMode =
+     gameMode =
         data.gameMode || gameMode;
 
-    gamePhase =
+     gamePhase =
         "waiting";
 
-    // GAME OVERを消す
-    const gameOver =
+          // GAME OVERを消す
+     const gameOver =
         document.getElementById("gameOver");
 
-    if (gameOver) {
+     if (gameOver) {
         gameOver.remove();
     }
 
@@ -901,27 +916,45 @@ function draw() {
     // コイン
     // ---------------------------------------------
     
+    if (gameMode !== "fps") {
     drawCoins(ctx, coins);
-
+}
 
     // ----------------------------------------------
-    // 他プレイヤー
+    // プレイヤー描画
     // ----------------------------------------------
 
+if (gameMode === "fps") {
+
+    // FPSならfps.jsの描画を使う
+    drawFPSPlayers(
+        ctx,
+        players,
+        myPlayerId
+    );
+
+     // 弾を描画
+    drawFPSBullets(ctx);
+
+
+    // 自分の銃を描画
+    drawFPSGun(
+        ctx,
+        myPlayer
+    );
+
+} else {
+    // コインゲームは今まで通り
     for (const player of players) {
 
         if (
-            player.id ===
-            myPlayerId
+            player.id === myPlayerId
         ) {
-
             continue;
-
         }
 
         ctx.fillStyle =
-            player.color ||
-            "blue";
+            player.color || "blue";
 
         ctx.fillRect(
             player.x,
@@ -931,38 +964,42 @@ function draw() {
         );
 
     }
-       // ----------------------------------------------
-       // 自分
-       // ----------------------------------------------
 
-       ctx.fillStyle =
+}
+
+
+   // ----------------------------------------------
+   // 自分
+   // ----------------------------------------------
+
+if (gameMode !== "fps") {
+
+    ctx.fillStyle =
         myColor;
 
-       ctx.fillRect(
-      myPlayer.x,
-      myPlayer.y,
-      myPlayer.size,
-      myPlayer.size
-       );
+    ctx.fillRect(
+        myPlayer.x,
+        myPlayer.y,
+        myPlayer.size,
+        myPlayer.size
+    );
 
-       ctx.fillStyle =
+    ctx.fillStyle =
         "white";
 
-       ctx.font =
+    ctx.font =
         "12px sans-serif";
 
-       ctx.textAlign =
-       "center";
+    ctx.textAlign =
+        "center";
 
-       ctx.fillText(
-           "YOU",
-       myPlayer.x + 15,
-       myPlayer.y - 7
-         );
+    ctx.fillText(
+        "YOU",
+        myPlayer.x + 15,
+        myPlayer.y - 7
+    );
 
-    
-
-
+}
 
 
 }
