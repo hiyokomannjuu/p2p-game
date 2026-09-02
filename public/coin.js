@@ -1,3 +1,4 @@
+// コインの描画
 function drawCoins(ctx, coins) {
 
     for (const coin of coins) {
@@ -30,4 +31,53 @@ function drawCoins(ctx, coins) {
             coin.y
         );
     }
+}
+//コインの当たり判定
+function checkCoinCollision(player, coins, socket) {
+
+    const playerCenterX =
+        player.x + player.size / 2;
+
+    const playerCenterY =
+        player.y + player.size / 2;
+
+    for (const coin of coins) {
+
+        const dx =
+            playerCenterX - coin.x;
+
+        const dy =
+            playerCenterY - coin.y;
+
+        const distance =
+            Math.sqrt(
+                dx * dx +
+                dy * dy
+            );
+
+        if (distance < 25) {
+
+            if (
+                socket &&
+                socket.readyState === WebSocket.OPEN
+            ) {
+
+                socket.send(
+                    JSON.stringify({
+
+                        type: "collect-coin",
+
+                        coinId: coin.id
+
+                    })
+                );
+
+            }
+
+            break;
+
+        }
+
+    }
+
 }
