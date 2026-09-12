@@ -20,101 +20,112 @@
 
     <div id="login">
 
-        <input
-            id="nameInput"
-            placeholder="名前を入力"
-            maxlength="20"
-        >
+        <input id="nameInput" placeholder="名前を入力" maxlength="20">
 
         <br><br>
 
-        <input
-            id="roomInput"
-            placeholder="ルーム番号"
-        >
+        <input id="roomInput" placeholder="ルーム番号">
 
         <br><br>
 
-       <!-- ==================== -->
-<!-- ゲームモード -->
-<!-- ==================== -->
+        <!-- ==================== -->
+        <!-- ゲームモード -->
+        <!-- ==================== -->
 
-<label for="gameMode">
-    🎮 ゲームモード：
-</label>
+        <label for="gameMode">
+            🎮 ゲームモード：
+        </label>
 
-<select id="gameMode">
+        <select id="gameMode">
 
-    <option value="coin" selected>
-        🪙 コイン集め
-    </option>
+            <option value="coin" selected>
+                🪙 コイン集め
+            </option>
 
-    <option value="fps">
-    🔫 2D FPS
-    </option>
+            <option value="fps">
+                🔫 2D FPS
+            </option>
 
-    <option value="battle">
-        ⚔️ バトル
-    </option>
+            <option value="battle">
+                ⚔️ バトル
+            </option>
 
-    <option value="survival">
-        🏃 生き残り
-    </option>
+            <option value="survival">
+                🏃 生き残り
+            </option>
 
-</select>
-
-<br><br>
-<!-- ==================== -->
-<!-- FPS チーム選択 -->
-<!-- ==================== -->
-
-<div id="teamSelect" style="display: none;">
-
-    <p>🔫 チームを選択</p>
-
-    <button id="teamAButton">
-        🔵 Aチーム
-    </button>
-
-    <button id="teamBButton">
-        🔴 Bチーム
-    </button>
-
-    <p id="myTeamDisplay">
-        チーム：未選択
-    </p>
-
-</div>
-
-<br>
-
-
-<!-- ==================== -->
-<!-- 参加人数 -->
-<!-- ==================== -->
-
-<label for="playerCount">
-    👥 参加人数：
-</label>
-
-<select id="playerCount">
-    <option value="1">1人</option>
-    <option value="2">2人</option>
-    <option value="3">3人</option>
-    <option value="4" selected>4人</option>
-    <option value="5">5人</option>
-    <option value="6">6人</option>
-    <option value="7">7人</option>
-    <option value="8">8人</option>
-    <option value="10">10人</option>
-    <option value="15">15人</option>
-    <option value="20">20人</option>
-
-</select>
-
-<br><br>
+        </select>
 
         <br><br>
+        <!-- ==================== -->
+        <!-- FPS チーム選択 -->
+        <!-- ==================== -->
+
+        <div id="teamSelect" style="display: none;">
+
+            <p>🔫 チームを選択</p>
+
+            <button id="teamAButton">
+                🔵 Aチーム
+            </button>
+
+            <button id="teamBButton">
+                🔴 Bチーム
+            </button>
+
+            <p id="myTeamDisplay">
+                チーム：未選択
+            </p>
+
+        </div>
+
+        <br>
+
+
+        <!-- ==================== -->
+        <!-- 参加人数 -->
+        <!-- ==================== -->
+
+        <label for="playerCount">
+            👥 参加人数：
+        </label>
+
+        <select id="playerCount">
+            <option value="1">1人</option>
+            <option value="2" selected>2人</option>
+            <option value="3">3人</option>
+            <option value="4">4人</option>
+            <option value="5">5人</option>
+            <option value="6">6人</option>
+            <option value="7">7人</option>
+            <option value="8">8人</option>
+            <option value="10">10人</option>
+            <option value="15">15人</option>
+            <option value="20">20人</option>
+
+        </select>
+
+        <br><br>
+
+        <br><br>
+        <label for="mapSelect">🗺️ マップ：</label>
+        <select id="mapSelect">
+            <option value="map1" selected>MAP 1</option>
+            <option value="map2">MAP 2</option>
+            <option value="map3">MAP 3</option>
+        </select>
+
+        <br><br>
+        <label for="gameTime">⏱️ ゲーム時間：</label>
+        <select id="gameTime">
+            <option value="60">1分</option>
+            <option value="90">1分30秒</option>
+            <option value="120">2分</option>
+            <option value="150" selected>2分30秒</option>
+            <option value="180">3分</option>
+            <option value="300">5分</option>
+            <option value="0">無制限</option>
+        </select>
 
         <button id="joinButton">
             ゲームに参加
@@ -127,7 +138,7 @@
     <!-- ゲーム画面 -->
     <!-- ==================== -->
 
-      <div id="game">
+    <div id="game">
 
         <!-- ゲーム状態 -->
         <div id="gameStatus">
@@ -144,34 +155,39 @@
             参加人数：0 / 0
         </div>
 
+
+
+        <!-- FPS スコアボードボタン -->
+        <button id="mobileScoreboardButton" style="display: none;">
+            ☰ スコア
+        </button>
+        <!-- チャットボタン -->
+        <button id="chatToggleButton">
+            💬
+        </button>
         <!-- キャンバス -->
-        <canvas
-            id="canvas"
-            width="800"
-            height="500"
-        ></canvas>
+        <canvas id="canvas" width="1000" height="500"></canvas>
 
 
         <!-- ==================== -->
         <!-- チャット -->
         <!-- ==================== -->
 
-        <div id="chat">
+        <div id="chatWindow">
 
-            <div id="chatMessages"></div>
+            <div id="chat">
 
-            <div id="chatInputArea">
+                <div id="chatMessages"></div>
 
-                <input
-                    id="chatInput"
-                    type="text"
-                    placeholder="メッセージを入力"
-                    maxlength="200"
-                >
+                <div id="chatInputArea">
 
-                <button id="chatSend">
-                    送信
-                </button>
+                    <input id="chatInput" type="text" placeholder="メッセージを入力" maxlength="200">
+
+                    <button id="chatSend">
+                        送信
+                    </button>
+
+                </div>
 
             </div>
 
@@ -184,9 +200,11 @@
     </div>
 
 
-   <script src="coin.js"></script>
-   <script src="game.js"></script>
-   <script src="fps.js"></script>
+    <script src="coin.js"></script>
+    <script src="time.js"></script>
+    <script src="map.js"></script>
+    <script src="game.js"></script>
+    <script src="fps.js"></script>
 </body>
 
 </html>
