@@ -162,8 +162,8 @@ function drawFPSPlayers(ctx, players, myPlayerId) {
         ctx.fillRect(
             x,
             y,
-            30,
-            30
+            20,
+            20
         );
 
         // ----------------------------
@@ -174,49 +174,105 @@ function drawFPSPlayers(ctx, players, myPlayerId) {
 
         ctx.font =
             "12px sans-serif";
-
-        ctx.textAlign =
-            "center";
+        ctx.textAlign = "left";
 
         ctx.fillText(
-              `${player.name || "名無し"} / ${player.team || "?"}`,
-              x + 15,y - 5
-              );
+            `${player.name || "名無し"} / ${player.team || "?"}`,
+            x + 15, y - 5
+        );
         // ----------------------------
         // HP表示
         // ----------------------------
+        // 味方だけHPを表示
+        if (player.team === myTeam) {
 
-        ctx.fillStyle = "white";
+            // HP表示の背景
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(
+                x + 8,
+                y + 20,
+                45,
+                18
+            );
 
-        ctx.font =
-            "12px sans-serif";
+            // HP表示
+            ctx.fillStyle = "white";
+            ctx.font = "12px sans-serif";
 
-        ctx.fillText(
-            `HP: ${player.hp ?? 100}`,
-            x + 15,
-            y + 45
-        );
+            ctx.fillText(
+                `HP: ${player.hp ?? 100}`,
+                x + 12,
+                y + 33
+            );
+        }
 
     }
-
 }
 // ==================================================
-// FPS 攻撃
+// FPS PC用・マウス照準
 // ==================================================
 
-canvas.addEventListener("click", () => {
+canvas.addEventListener("mousemove", (event) => {
 
-    // FPSモード以外では攻撃しない
     if (gameMode !== "fps") {
         return;
     }
 
-    // ゲーム中以外は攻撃しない
+    const rect = canvas.getBoundingClientRect();
+
+    // マウスの位置をキャンバス座標に変換
+    const mouseX =
+        (event.clientX - rect.left) *
+        (canvas.width / rect.width);
+
+    const mouseY =
+        (event.clientY - rect.top) *
+        (canvas.height / rect.height);
+
+    // 自分の中心
+    const centerX =
+        myPlayer.x + 15;
+
+    const centerY =
+        myPlayer.y + 15;
+
+    // マウス方向
+    let dx = mouseX - centerX;
+    let dy = mouseY - centerY;
+
+    const length =
+        Math.sqrt(dx * dx + dy * dy);
+
+    if (length === 0) {
+        return;
+    }
+
+    // 正規化
+    dx /= length;
+    dy /= length;
+
+    shootDirection = {
+        x: dx,
+        y: dy
+    };
+
+});
+
+
+// ===============================================
+// FPS PC用・射撃
+// ===============================================
+
+canvas.addEventListener("click", () => {
+
+    if (gameMode !== "fps") {
+        return;
+    }
+
     if (gamePhase !== "playing") {
         return;
     }
 
-    // サーバーに攻撃を送る
     if (
         socket &&
         socket.readyState === WebSocket.OPEN
@@ -224,42 +280,14 @@ canvas.addEventListener("click", () => {
 
         socket.send(
             JSON.stringify({
-                type: "fps-shoot"
+                type: "fps-shoot",
+                direction: shootDirection
             })
         );
 
     }
 
 });
-
-// ==================================================
-// FPS スマホ用・射撃方向ジョイスティック
-// ==================================================
-
-const aimControls =
-    document.createElement("div");
-
-aimControls.id = "aimControls";
-
-aimControls.innerHTML = `
-    <div>
-        <button data-aim="up">↑</button>
-    </div>
-
-    <div>
-        <button data-aim="left">←</button>
-        <button data-aim="down">↓</button>
-        <button data-aim="right">→</button>
-    </div>
-`;
-
-aimControls.style.textAlign = "center";
-aimControls.style.userSelect = "none";
-aimControls.style.position = "fixed";
-aimControls.style.right = "20px";
-aimControls.style.bottom = "20px";
-
-document.body.appendChild(aimControls);
 
 
 // 射撃方向
@@ -269,60 +297,144 @@ let shootDirection = {
 };
 
 
-// ボタン処理
-aimControls
-    .querySelectorAll("button")
-    .forEach((button) => {
+// ==================================================
+// FPS スマホ用・右スティック（照準）
+// ==================================================
 
-        button.style.width = "60px";
-        button.style.height = "60px";
-        button.style.fontSize = "25px";
-        button.style.margin = "3px";
-        button.style.touchAction = "none";
+// PCではスティックを非表示
+const isMobile =
+    /Android|iPhone|iPad|iPod/i.test(
+        navigator.userAgent
+    );
 
-        button.addEventListener(
-            "pointerdown",
-            (event) => {
+const aimStick = document.createElement("div");
 
-                event.preventDefault();
+aimStick.id = "aimStick";
 
-                const direction =
-                    button.dataset.aim;
+aimStick.style.position = "fixed";
+aimStick.style.right = "30px";
+aimStick.style.bottom = "30px";
 
-                if (direction === "up") {
-                    shootDirection = {
-                        x: 0,
-                        y: -1
-                    };
-                }
+aimStick.style.width = "120px";
+aimStick.style.height = "120px";
 
-                if (direction === "down") {
-                    shootDirection = {
-                        x: 0,
-                        y: 1
-                    };
-                }
+aimStick.style.border = "3px solid white";
+aimStick.style.borderRadius = "50%";
 
-                if (direction === "left") {
-                    shootDirection = {
-                        x: -1,
-                        y: 0
-                    };
-                }
+aimStick.style.background =
+    "rgba(255,255,255,0.15)";
 
-                if (direction === "right") {
-                    shootDirection = {
-                        x: 1,
-                        y: 0
-                    };
-                }
+aimStick.style.touchAction = "none";
 
-            }
-        );
+if (isMobile) {
+    document.body.appendChild(aimStick);
+}
 
-    });
 
-    // ==================================================
+// 右スティックの中心
+const aimStickKnob = document.createElement("div");
+
+aimStickKnob.style.position = "absolute";
+
+aimStickKnob.style.left = "35px";
+aimStickKnob.style.top = "35px";
+
+aimStickKnob.style.width = "50px";
+aimStickKnob.style.height = "50px";
+
+aimStickKnob.style.borderRadius = "50%";
+
+aimStickKnob.style.background =
+    "rgba(255,255,255,0.7)";
+
+aimStickKnob.style.touchAction = "none";
+
+aimStick.appendChild(aimStickKnob);
+
+
+// ==================================================
+// 右スティック操作
+// ==================================================
+
+aimStick.addEventListener(
+    "pointermove",
+    (event) => {
+
+        if (event.buttons === 0) {
+            return;
+        }
+
+        const rect =
+            aimStick.getBoundingClientRect();
+
+        const centerX =
+            rect.left + rect.width / 2;
+
+        const centerY =
+            rect.top + rect.height / 2;
+
+        let dx =
+            event.clientX - centerX;
+
+        let dy =
+            event.clientY - centerY;
+
+        const maxDistance = 35;
+
+        const distance =
+            Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > maxDistance) {
+
+            dx =
+                dx / distance *
+                maxDistance;
+
+            dy =
+                dy / distance *
+                maxDistance;
+
+        }
+
+        // 照準方向
+        if (distance > 5) {
+
+            shootDirection = {
+                x: dx / maxDistance,
+                y: dy / maxDistance
+            };
+
+        }
+
+        // スティックの見た目
+        aimStickKnob.style.left =
+            `${35 + dx}px`;
+
+        aimStickKnob.style.top =
+            `${35 + dy}px`;
+
+    }
+);
+
+
+// 指を離したら中央に戻す
+function resetAimStick() {
+
+    aimStickKnob.style.left = "35px";
+    aimStickKnob.style.top = "35px";
+
+}
+
+aimStick.addEventListener(
+    "pointerup",
+    resetAimStick
+);
+
+aimStick.addEventListener(
+    "pointercancel",
+    resetAimStick
+);
+// ==================================================
 // FPS スマホ用・撃つボタン
 // ==================================================
 
@@ -343,7 +455,9 @@ shootButton.style.height = "60px";
 shootButton.style.fontSize = "20px";
 shootButton.style.touchAction = "none";
 
-document.body.appendChild(shootButton);
+if (isMobile) {
+    document.body.appendChild(shootButton);
+}
 
 
 // ==================================================
@@ -473,5 +587,30 @@ function drawFPSBullets(ctx) {
         );
 
         ctx.fill();
+    }
+}
+
+
+// ==================================================
+// FPS MAP 描画
+// ==================================================
+
+function drawFPSMap(ctx) {
+    const map = maps[window.currentMap || "map1"];
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, map.width, map.height);
+
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(10, 10, map.width - 20, map.height - 20);
+
+    for (const wall of map.walls) {
+        ctx.fillStyle = "#555";
+        ctx.fillRect(
+            wall.x,
+            wall.y,
+            wall.width,
+            wall.height
+        );
     }
 }
