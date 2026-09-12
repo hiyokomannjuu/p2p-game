@@ -7,6 +7,8 @@ const nameInput = document.getElementById("nameInput");
 const playerCountInput = document.getElementById("playerCount");
 const gameModeInput =
     document.getElementById("gameMode");
+const gameTimeInput =
+    document.getElementById("gameTime");
 const login = document.getElementById("login");
 const game = document.getElementById("game");
 
@@ -31,11 +33,11 @@ let gamePhase = "waiting";
 let gameLoopStarted = false;
 
 const keys = {};
-
+//プレイヤーのサイズ
 const myPlayer = {
     x: 200,
     y: 200,
-    size: 30
+    size: 20
 };
 
 
@@ -55,84 +57,174 @@ document.addEventListener("keyup", (event) => {
 
 });
 
+// ====================
+// FPS スコアボード
+// ====================
+
+let scoreboardVisible = false;
+
+document.addEventListener("keydown", (e) => {
+
+    if (e.code !== "Tab") {
+        return;
+    }
+
+    if (gameMode !== "fps") {
+        return;
+    }
+
+    e.preventDefault();
+
+    scoreboardVisible = true;
+
+    updateScoreboard();
+});
+
+document.addEventListener("keyup", (e) => {
+
+    if (e.code !== "Tab") {
+        return;
+    }
+
+    scoreboardVisible = false;
+
+    updateScoreboard();
+});
 
 // ==================================================
-// スマホ操作
+// スマホ用 左スティック
 // ==================================================
 
-const mobileControls =
-    document.createElement("div");
+const moveStick = document.createElement("div");
 
-mobileControls.id = "mobileControls";
+moveStick.id = "moveStick";
 
-mobileControls.innerHTML = `
-    <div>
-        <button data-key="arrowup">↑</button>
-    </div>
+moveStick.style.position = "fixed";
+moveStick.style.left = "30px";
+moveStick.style.bottom = "30px";
 
-    <div>
-        <button data-key="arrowleft">←</button>
-        <button data-key="arrowdown">↓</button>
-        <button data-key="arrowright">→</button>
-    </div>
-`;
+moveStick.style.width = "120px";
+moveStick.style.height = "120px";
 
-mobileControls.style.textAlign = "center";
-mobileControls.style.marginTop = "15px";
-mobileControls.style.userSelect = "none";
+moveStick.style.border = "3px solid white";
+moveStick.style.borderRadius = "50%";
 
-mobileControls
-    .querySelectorAll("button")
-    .forEach((button) => {
+moveStick.style.background = "rgba(255,255,255,0.15)";
+moveStick.style.touchAction = "none";
 
-        button.style.width = "70px";
-        button.style.height = "70px";
-        button.style.fontSize = "30px";
-        button.style.margin = "5px";
-        button.style.touchAction = "none";
+document.body.appendChild(moveStick);
 
-        const key = button.dataset.key;
-
-        button.addEventListener(
-            "pointerdown",
-            (event) => {
-
-                event.preventDefault();
-
-                button.setPointerCapture(
-                    event.pointerId
-                );
-
-                keys[key] = true;
-
-            }
-        );
-
-        button.addEventListener(
-            "pointerup",
-            (event) => {
-
-                event.preventDefault();
-
-                keys[key] = false;
-
-            }
-        );
-
-        button.addEventListener(
-            "pointercancel",
-            () => {
-
-                keys[key] = false;
-
-            }
-        );
-
-    });
-
-game.appendChild(mobileControls);
+moveStick.style.display =
+    /Android|iPhone|iPad|iPod/i.test(
+        navigator.userAgent
+    )
+        ? "block"
+        : "none";
 
 
+// スティック本体
+const moveStickKnob = document.createElement("div");
+
+moveStickKnob.style.position = "absolute";
+
+moveStickKnob.style.left = "35px";
+moveStickKnob.style.top = "35px";
+
+moveStickKnob.style.width = "50px";
+moveStickKnob.style.height = "50px";
+
+moveStickKnob.style.borderRadius = "50%";
+
+moveStickKnob.style.background =
+    "rgba(255,255,255,0.7)";
+
+moveStickKnob.style.touchAction = "none";
+
+moveStick.appendChild(moveStickKnob);
+
+
+// スティックの入力値
+let moveStickX = 0;
+let moveStickY = 0;
+
+
+// スティック操作
+moveStick.addEventListener(
+    "pointermove",
+    (event) => {
+
+        if (event.buttons === 0) {
+            return;
+        }
+
+        const rect =
+            moveStick.getBoundingClientRect();
+
+        const centerX =
+            rect.left + rect.width / 2;
+
+        const centerY =
+            rect.top + rect.height / 2;
+
+        let dx =
+            event.clientX - centerX;
+
+        let dy =
+            event.clientY - centerY;
+
+        const maxDistance = 35;
+
+        const distance =
+            Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > maxDistance) {
+
+            dx =
+                dx / distance *
+                maxDistance;
+
+            dy =
+                dy / distance *
+                maxDistance;
+
+        }
+
+        moveStickX =
+            dx / maxDistance;
+
+        moveStickY =
+            dy / maxDistance;
+
+        moveStickKnob.style.left =
+            `${35 + dx}px`;
+
+        moveStickKnob.style.top =
+            `${35 + dy}px`;
+
+    }
+);
+
+
+// 指を離した
+function resetMoveStick() {
+
+    moveStickX = 0;
+    moveStickY = 0;
+
+    moveStickKnob.style.left = "35px";
+    moveStickKnob.style.top = "35px";
+
+}
+
+moveStick.addEventListener(
+    "pointerup",
+    resetMoveStick
+);
+
+moveStick.addEventListener(
+    "pointercancel",
+    resetMoveStick
+);
 // ==================================================
 // 参加
 // ==================================================
@@ -185,9 +277,14 @@ joinButton.addEventListener("click", () => {
                 name: name,
 
                 maxPlayers: selectedPlayers,
-                
+
                 gameMode: gameModeInput.value,
-                
+
+                gameTime: Number(gameTimeInput.value),
+
+                map: document.getElementById("mapSelect").value,
+
+
                 team: typeof myTeam !== "undefined" ? myTeam : null
 
             })
@@ -220,15 +317,50 @@ joinButton.addEventListener("click", () => {
             // FPS 弾の受信
             // ======================================
 
-             if (data.type === "fps-state") {
+            if (data.type === "fps-state") {
 
                 fpsBullets =
-                        data.bullets || [];
+                    data.bullets || [];
 
                 players =
-                        data.players || [];
+                    data.players || [];
 
-              }
+            }
+
+            if (data.type === "team-kills") {
+
+                const teamKillsDisplay =
+                    document.getElementById("teamKillsDisplay");
+
+                if (teamKillsDisplay) {
+
+                    teamKillsDisplay.style.display = "block";
+
+                    teamKillsDisplay.textContent =
+                        `🔵 Aチーム：${data.teamKills.A}キル　` +
+                        `🔴 Bチーム：${data.teamKills.B}キル`;
+
+                }
+
+            }
+
+            if (data.type === "team-kills") {
+
+                const teamKillsDisplay =
+                    document.getElementById("teamKillsDisplay");
+
+                if (teamKillsDisplay) {
+
+                    teamKillsDisplay.style.display = "block";
+
+                    teamKillsDisplay.textContent =
+                        `🔵 Aチーム：${data.teamKills.A}キル　` +
+                        `🔴 Bチーム：${data.teamKills.B}キル`;
+
+                }
+
+            }
+
 
             // ======================================
             // 参加完了
@@ -250,9 +382,11 @@ joinButton.addEventListener("click", () => {
 
                 maxPlayers =
                     data.maxPlayers;
-                gameMode = data.gameMode || "coin"; 
+                gameMode = data.gameMode || "coin";
                 timeLeft =
                     data.timeLeft || 60;
+
+                updateMobileScoreboardButton();
 
                 gamePhase =
                     data.phase || "waiting";
@@ -288,34 +422,36 @@ joinButton.addEventListener("click", () => {
 
             if (data.type === "waiting") {
 
-     players =
-        data.players || [];
+                players =
+                    data.players || [];
 
-     maxPlayers =
-        data.maxPlayers ||
-        maxPlayers;
+                maxPlayers =
+                    data.maxPlayers ||
+                    maxPlayers;
 
-     gameMode =
-        data.gameMode || gameMode;
+                gameMode =
+                    data.gameMode || gameMode;
 
-     gamePhase =
-        "waiting";
+                updateMobileScoreboardButton();
 
-          // GAME OVERを消す
-     const gameOver =
-        document.getElementById("gameOver");
+                gamePhase =
+                    "waiting";
 
-     if (gameOver) {
-        gameOver.remove();
-    }
+                // GAME OVERを消す
+                const gameOver =
+                    document.getElementById("gameOver");
 
-    updatePlayerCount();
+                if (gameOver) {
+                    gameOver.remove();
+                }
 
-    updateReadyButton();
+                updatePlayerCount();
 
-    updateStatus();
+                updateReadyButton();
 
-}
+                updateStatus();
+
+            }
 
 
             // ======================================
@@ -443,7 +579,7 @@ joinButton.addEventListener("click", () => {
                 updateReadyButton();
 
                 showGameOver(
-                    data.ranking || []
+                    data.result
                 );
 
             }
@@ -671,8 +807,11 @@ function updateStatus() {
         gamePhase === "playing"
     ) {
 
-        gameStatus.textContent =
-            `⏱️ ${timeLeft}秒`;
+        if (timeLeft === 0) {
+            gameStatus.textContent = `⏱️ 無制限`;
+        } else {
+            gameStatus.textContent = `⏱️ ${timeLeft}秒`;
+        }
 
     }
 
@@ -706,50 +845,63 @@ function update(currentTime) {
 
     }
 
-
     // ----------------------------------------------
     // 移動速度
     // ----------------------------------------------
 
-    const speed = 240;
+    //プレーヤーの速さ
+    const speed = 160;
 
     let dx = 0;
     let dy = 0;
 
 
+    // キーボード移動
     if (
         keys["w"] ||
         keys["arrowup"]
     ) {
-
         dy -= 1;
-
     }
 
     if (
         keys["s"] ||
         keys["arrowdown"]
     ) {
-
         dy += 1;
-
     }
 
     if (
         keys["a"] ||
         keys["arrowleft"]
     ) {
-
         dx -= 1;
-
     }
 
     if (
         keys["d"] ||
         keys["arrowright"]
     ) {
-
         dx += 1;
+    }
+
+
+    // スマホ左スティック
+    if (
+        typeof moveStickX !== "undefined" &&
+        typeof moveStickY !== "undefined"
+    ) {
+
+        // スティックが実際に動いているときだけ入力する
+        if (
+            Math.abs(moveStickX) > 0.05 ||
+            Math.abs(moveStickY) > 0.05
+        ) {
+
+            dx += moveStickX;
+            dy += moveStickY;
+
+        }
 
     }
 
@@ -772,6 +924,11 @@ function update(currentTime) {
         dx /= length;
         dy /= length;
 
+        // 移動前の位置を保存
+        const oldX = myPlayer.x;
+        const oldY = myPlayer.y;
+
+        // 移動
         myPlayer.x +=
             dx *
             speed *
@@ -781,6 +938,32 @@ function update(currentTime) {
             dy *
             speed *
             deltaTime;
+
+        // 壁との当たり判定
+        // 壁との当たり判定
+        if (
+            gameMode === "fps" &&
+            typeof fpsMap !== "undefined"
+        ) {
+
+            for (const wall of fpsMap.walls) {
+
+                const hit =
+                    myPlayer.x < wall.x + wall.width &&
+                    myPlayer.x + myPlayer.size > wall.x &&
+                    myPlayer.y < wall.y + wall.height &&
+                    myPlayer.y + myPlayer.size > wall.y;
+
+                if (hit) {
+
+                    // 壁にぶつかったら元の位置に戻す
+                    myPlayer.x = oldX;
+                    myPlayer.y = oldY;
+
+                    break;
+                }
+            }
+        }
 
     }
 
@@ -794,7 +977,7 @@ function update(currentTime) {
             0,
             Math.min(
                 canvas.width -
-                    myPlayer.size,
+                myPlayer.size,
                 myPlayer.x
             )
         );
@@ -804,7 +987,7 @@ function update(currentTime) {
             0,
             Math.min(
                 canvas.height -
-                    myPlayer.size,
+                myPlayer.size,
                 myPlayer.y
             )
         );
@@ -817,7 +1000,7 @@ function update(currentTime) {
     if (
         socket &&
         socket.readyState ===
-            WebSocket.OPEN
+        WebSocket.OPEN
     ) {
 
         socket.send(
@@ -870,7 +1053,7 @@ function update(currentTime) {
             if (
                 socket &&
                 socket.readyState ===
-                    WebSocket.OPEN
+                WebSocket.OPEN
             ) {
 
                 socket.send(
@@ -903,7 +1086,7 @@ function update(currentTime) {
 function draw() {
 
     console.log("DRAW動いてる");
-    
+
     ctx.clearRect(
         0,
         0,
@@ -915,91 +1098,93 @@ function draw() {
     // ----------------------------------------------
     // コイン
     // ---------------------------------------------
-    
+
     if (gameMode !== "fps") {
-    drawCoins(ctx, coins);
-}
+        drawCoins(ctx, coins);
+    }
 
     // ----------------------------------------------
     // プレイヤー描画
     // ----------------------------------------------
 
-if (gameMode === "fps") {
+    if (gameMode === "fps") {
 
-    // FPSならfps.jsの描画を使う
-    drawFPSPlayers(
-        ctx,
-        players,
-        myPlayerId
-    );
+        // FPSマップを描画
+        drawFPSMap(ctx);
 
-     // 弾を描画
-    drawFPSBullets(ctx);
-
-
-    // 自分の銃を描画
-    drawFPSGun(
-        ctx,
-        myPlayer
-    );
-
-} else {
-    // コインゲームは今まで通り
-    for (const player of players) {
-
-        if (
-            player.id === myPlayerId
-        ) {
-            continue;
-        }
-
-        ctx.fillStyle =
-            player.color || "blue";
-
-        ctx.fillRect(
-            player.x,
-            player.y,
-            30,
-            30
+        // プレイヤーを描画
+        drawFPSPlayers(
+            ctx,
+            players,
+            myPlayerId
         );
+
+        // 弾を描画
+        drawFPSBullets(ctx);
+
+        // 自分の銃を描画
+        drawFPSGun(
+            ctx,
+            myPlayer
+        );
+
+    } else {
+        // コインゲームは今まで通り
+        for (const player of players) {
+
+            if (
+                player.id === myPlayerId
+            ) {
+                continue;
+            }
+
+            ctx.fillStyle =
+                player.color || "blue";
+
+            ctx.fillRect(
+                player.x,
+                player.y,
+                30,
+                30
+            );
+
+        }
 
     }
 
-}
 
+    // ----------------------------------------------
+    // 自分
+    // ----------------------------------------------
 
-   // ----------------------------------------------
-   // 自分
-   // ----------------------------------------------
+    if (gameMode !== "fps") {
 
-if (gameMode !== "fps") {
+        ctx.fillStyle =
+            myColor;
 
-    ctx.fillStyle =
-        myColor;
+        ctx.fillRect(
+            myPlayer.x,
+            myPlayer.y,
+            myPlayer.size,
+            myPlayer.size
+        );
 
-    ctx.fillRect(
-        myPlayer.x,
-        myPlayer.y,
-        myPlayer.size,
-        myPlayer.size
-    );
+        ctx.fillStyle =
+            "white";
 
-    ctx.fillStyle =
-        "white";
+        ctx.font =
+            "12px sans-serif";
 
-    ctx.font =
-        "12px sans-serif";
+        ctx.textAlign =
+            "center";
 
-    ctx.textAlign =
-        "center";
+        ctx.fillText(
+            "YOU",
+            myPlayer.x + 15,
+            myPlayer.y - 7
+        );
 
-    ctx.fillText(
-        "YOU",
-        myPlayer.x + 15,
-        myPlayer.y - 7
-    );
-
-}
+    }
 
 
 }
@@ -1026,7 +1211,7 @@ function gameLoop(currentTime) {
 // ゲーム終了画面
 // ==================================================
 
-function showGameOver(ranking) {
+function showGameOver(resultData) {
 
     const old =
         document.getElementById(
@@ -1084,39 +1269,101 @@ function showGameOver(ranking) {
         "<strong>🏆 GAME OVER</strong><br><br>";
 
 
-    ranking.forEach((player) => {
+    if (resultData.type === "ranking") {
 
-        let medal = "";
+        resultData.ranking.forEach((player) => {
 
-        if (player.rank === 1) {
+            let medal = "";
 
-            medal = "🥇";
+            if (player.rank === 1) {
+                medal = "🥇";
+            } else if (player.rank === 2) {
+                medal = "🥈";
+            } else if (player.rank === 3) {
+                medal = "🥉";
+            }
 
-        } else if (
-            player.rank === 2
-        ) {
+            html +=
+                `${medal} ${player.rank}位 ` +
+                `${escapeHtml(player.name)} ` +
+                `${player.score}枚<br>`;
+        });
 
-            medal = "🥈";
+        const myResult =
+            resultData.ranking.find(
+                (player) =>
+                    player.id === myPlayerId
+            );
 
-        } else if (
-            player.rank === 3
-        ) {
+        if (myResult) {
 
-            medal = "🥉";
+            html += `
+            <hr>
+
+            <strong>📊 あなたの成績</strong><br><br>
+
+            🔫 キル：${myResult.kills}<br>
+            💀 デス：${myResult.deaths}<br>
+            💥 与ダメージ：${myResult.damageDealt}<br>
+            🛡️ 被ダメージ：${myResult.damageTaken}<br>
+        `;
 
         }
 
+    }
+    if (resultData.type === "tdm") {
 
-        html +=
-            `${medal} ${player.rank}位　` +
-            `${escapeHtml(player.name)}　` +
-            `${player.score}枚<br>`;
+        const teamKills = resultData.teamKills;
 
-    });
+        html += `
+        🔵 Aチーム：${teamKills.A}キル<br>
+        🔴 Bチーム：${teamKills.B}キル<br><br>
+    `;
+
+        if (teamKills.A > teamKills.B) {
+
+            html += "🏆 Aチームの勝利！<br>";
+
+        } else if (teamKills.B > teamKills.A) {
+
+            html += "🏆 Bチームの勝利！<br>";
+
+        } else {
+
+            html += "🤝 引き分け！<br>";
+
+        }
+
+        const myResult =
+            resultData.players.find(
+                (player) =>
+                    player.id === myPlayerId
+            );
+
+        if (myResult) {
+
+            html += `
+            <hr>
+
+            <strong>📊 あなたの成績</strong><br><br>
+
+            🔫 キル：${myResult.kills}<br>
+            💀 デス：${myResult.deaths}<br>
+            💥 与ダメージ：${myResult.damageDealt}<br>
+            🛡️ 被ダメージ：${myResult.damageTaken}<br>
+        `;
+        }
+    }
 
 
     html += `
     <br>
+
+    <button id="detailButton">
+        詳細を見る
+    </button>
+
+    <br><br>
 
     <button id="nextGameButton">
         次のゲームへ
@@ -1136,39 +1383,45 @@ function showGameOver(ranking) {
     document.body.appendChild(
         result
     );
-const nextGameButton =
-    document.getElementById("nextGameButton");
+    const detailButton =
+        document.getElementById("detailButton");
 
-nextGameButton.addEventListener(
-    "click",
-    () => {
+    detailButton.onclick = () => {
+        alert("詳細成績を表示する予定！");
+    };
+    const nextGameButton =
+        document.getElementById("nextGameButton");
 
-        if (
-            !socket ||
-            socket.readyState !== WebSocket.OPEN
-        ) {
+    nextGameButton.addEventListener(
+        "click",
+        () => {
 
-            alert(
-                "サーバーとの接続がありません"
+            if (
+                !socket ||
+                socket.readyState !== WebSocket.OPEN
+            ) {
+
+                alert(
+                    "サーバーとの接続がありません"
+                );
+
+                return;
+
+            }
+
+            nextGameButton.disabled = true;
+
+            nextGameButton.textContent =
+                "準備完了！";
+
+            socket.send(
+                JSON.stringify({
+                    type: "next-game"
+                })
             );
 
-            return;
-
         }
-
-        nextGameButton.disabled = true;
-
-        nextGameButton.textContent =
-            "準備完了！";
-
-        socket.send(
-            JSON.stringify({
-                type: "next-game"
-            })
-        );
-
-    }
-);
+    );
 }
 
 
@@ -1245,7 +1498,7 @@ function sendChat() {
     if (
         !socket ||
         socket.readyState !==
-            WebSocket.OPEN
+        WebSocket.OPEN
     ) {
 
         alert(
@@ -1292,3 +1545,210 @@ chatInput.addEventListener(
 
     }
 );
+
+// ==================================================
+// FPS スコアボード表示
+// ==================================================
+
+function updateScoreboard() {
+
+    let scoreboard = document.getElementById("fpsScoreboard");
+
+    // 初回だけ作る
+    if (!scoreboard) {
+
+        scoreboard = document.createElement("div");
+
+        scoreboard.id = "fpsScoreboard";
+
+        scoreboard.style.position = "fixed";
+        scoreboard.style.top = "50%";
+        scoreboard.style.left = "50%";
+        scoreboard.style.transform = "translate(-50%, -50%)";
+
+        scoreboard.style.width = "600px";
+        scoreboard.style.maxWidth = "90%";
+
+        scoreboard.style.background = "rgba(0, 0, 0, 0.65)";
+        scoreboard.style.color = "rgba(255,255,255,0.8)";
+
+        scoreboard.style.padding = "15px";
+        scoreboard.style.borderRadius = "8px";
+
+        scoreboard.style.zIndex = "9999";
+
+        scoreboard.style.fontFamily = "sans-serif";
+        scoreboard.style.fontSize = "14px";
+
+        document.body.appendChild(scoreboard);
+    }
+
+    // 非表示
+    if (!scoreboardVisible || gameMode !== "fps") {
+        scoreboard.style.display = "none";
+        return;
+    }
+
+    scoreboard.style.display = "block";
+
+    // チームごとに分ける
+    const teamA = players.filter(p => p.team === "A");
+    const teamB = players.filter(p => p.team === "B");
+
+    let html = "";
+
+    html += `
+        <div style="text-align:center;font-size:18px;margin-bottom:10px;">
+            スコアボード
+        </div>
+    `;
+
+    // Aチーム
+    html += `
+        <div style="margin-bottom:12px;">
+            <div style="font-size:16px;">
+                🔵 Aチーム
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 60px 60px 100px;gap:8px;opacity:0.85;">
+                <span>名前</span>
+                <span>K</span>
+                <span>D</span>
+                <span>ダメージ</span>
+            </div>
+    `;
+
+    for (const player of teamA) {
+
+        html += `
+            <div style="display:grid;grid-template-columns:1fr 60px 60px 100px;gap:8px;">
+                <span>${player.name}</span>
+                <span>${player.kills ?? 0}</span>
+                <span>${player.deaths ?? 0}</span>
+                <span>${player.damageDealt ?? 0}</span>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+
+    // Bチーム
+    html += `
+        <div>
+            <div style="font-size:16px;">
+                🔴 Bチーム
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 60px 60px 100px;gap:8px;opacity:0.85;">
+                <span>名前</span>
+                <span>K</span>
+                <span>D</span>
+                <span>ダメージ</span>
+            </div>
+    `;
+
+    for (const player of teamB) {
+
+        html += `
+            <div style="display:grid;grid-template-columns:1fr 60px 60px 100px;gap:8px;">
+                <span>${player.name}</span>
+                <span>${player.kills ?? 0}</span>
+                <span>${player.deaths ?? 0}</span>
+                <span>${player.damageDealt ?? 0}</span>
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+
+    scoreboard.innerHTML = html;
+}
+// ==================================================
+// スマホ版 FPS スコアボード
+// ==================================================
+
+const mobileScoreboardButton =
+    document.getElementById("mobileScoreboardButton");
+
+if (mobileScoreboardButton) {
+
+    // 指で押した
+    mobileScoreboardButton.addEventListener("touchstart", (e) => {
+
+        e.preventDefault();
+
+        if (gameMode !== "fps") {
+            return;
+        }
+
+        scoreboardVisible = true;
+        updateScoreboard();
+    });
+
+    // 指を離した
+    mobileScoreboardButton.addEventListener("touchend", (e) => {
+
+        e.preventDefault();
+
+        scoreboardVisible = false;
+        updateScoreboard();
+    });
+
+    // マウスでもテストできるようにする
+    mobileScoreboardButton.addEventListener("mousedown", () => {
+
+        if (gameMode !== "fps") {
+            return;
+        }
+
+        scoreboardVisible = true;
+        updateScoreboard();
+    });
+
+    mobileScoreboardButton.addEventListener("mouseup", () => {
+
+        scoreboardVisible = false;
+        updateScoreboard();
+    });
+}
+
+// スマホ用スコアボードボタンの表示
+// FPSのときだけスマホ用スコアボードボタンを表示
+function updateMobileScoreboardButton() {
+
+    const button =
+        document.getElementById("mobileScoreboardButton");
+
+    if (!button) {
+        return;
+    }
+
+    if (gameMode === "fps") {
+        button.style.display = "inline-block";
+    } else {
+        button.style.display = "none";
+    }
+}
+// ====================
+// チャット開閉
+// ====================
+
+const chatToggleButton =
+    document.getElementById("chatToggleButton");
+
+const chatWindow =
+    document.getElementById("chatWindow");
+
+chatToggleButton.addEventListener("click", () => {
+
+    if (chatWindow.style.display === "block") {
+
+        chatWindow.style.display = "none";
+
+    } else {
+
+        chatWindow.style.display = "block";
+
+    }
+
+});
