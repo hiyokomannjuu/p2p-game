@@ -8,7 +8,10 @@ const wss = new WebSocket.Server({ server });
 
 app.use(express.static("public"));
 
+const { maps } = require("./public/map-data.js");
+
 const rooms = new Map();
+
 
 const MAX_PLAYERS = 20;
 const GAME_TIME = 60;
@@ -1369,6 +1372,38 @@ setInterval(() => {
             bullet.y +=
                 bullet.dy * bulletSpeed;
 
+            // --------------------------------
+            // 壁との当たり判定
+            // --------------------------------
+
+            const currentRoomMap =
+                maps[currentRoom.map || "map1"];
+
+            let hitWall = false;
+
+            for (const wall of currentRoomMap.walls) {
+
+                const hit =
+                    bullet.x >= wall.x &&
+                    bullet.x <= wall.x + wall.width &&
+                    bullet.y >= wall.y &&
+                    bullet.y <= wall.y + wall.height;
+
+                if (hit) {
+                    hitWall = true;
+                    break;
+                }
+            }
+
+            // 壁に当たったら弾を削除
+            if (hitWall) {
+
+                currentRoom.bullets.splice(i, 1);
+
+                continue;
+            }
+
+
 
             // --------------------------------
             // 画面外なら削除
@@ -1376,7 +1411,7 @@ setInterval(() => {
 
             if (
                 bullet.x < 0 ||
-                bullet.x > 800 ||
+                bullet.x > 1000 ||
                 bullet.y < 0 ||
                 bullet.y > 500
             ) {
