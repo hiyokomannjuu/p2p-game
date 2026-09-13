@@ -596,7 +596,7 @@ function drawFPSBullets(ctx) {
 // ==================================================
 
 function drawFPSMap(ctx) {
-    const map = maps[window.currentMap || "map1"];
+    const map = window.maps[window.currentMap || "map1"];
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, map.width, map.height);
 
