@@ -1,4 +1,4 @@
-const maps = {
+var maps = {
     map1: {
         width: 1000,
         height: 500,
