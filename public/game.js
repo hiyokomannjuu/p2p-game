@@ -951,23 +951,31 @@ function update(currentTime) {
 
             for (const wall of currentMap.walls) {
 
-                const hit =
+                // X方向だけ移動した場合の当たり判定
+                const hitX =
                     myPlayer.x < wall.x + wall.width &&
                     myPlayer.x + myPlayer.size > wall.x &&
+                    oldY < wall.y + wall.height &&
+                    oldY + myPlayer.size > wall.y;
+
+                // Y方向だけ移動した場合の当たり判定
+                const hitY =
+                    oldX < wall.x + wall.width &&
+                    oldX + myPlayer.size > wall.x &&
                     myPlayer.y < wall.y + wall.height &&
                     myPlayer.y + myPlayer.size > wall.y;
 
-                if (hit) {
-
-                    // 壁にぶつかったら元の位置に戻す
+                // X方向が壁に当たった
+                if (hitX) {
                     myPlayer.x = oldX;
-                    myPlayer.y = oldY;
+                }
 
-                    break;
+                // Y方向が壁に当たった
+                if (hitY) {
+                    myPlayer.y = oldY;
                 }
             }
         }
-
 
         // ----------------------------------------------
         // 画面外防止
@@ -1080,225 +1088,225 @@ function update(currentTime) {
     }
 
 }
-    // ==================================================
-    // 描画
-    // ==================================================
+// ==================================================
+// 描画
+// ==================================================
 
-    function draw() {
+function draw() {
 
-        console.log("DRAW動いてる");
+    console.log("DRAW動いてる");
 
-        ctx.clearRect(
-            0,
-            0,
-            canvas.width,
-            canvas.height
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    // ----------------------------------------------
+    // コイン
+    // ---------------------------------------------
+
+    if (gameMode !== "fps") {
+        drawCoins(ctx, coins);
+    }
+
+    // ----------------------------------------------
+    // プレイヤー描画
+    // ----------------------------------------------
+
+    if (gameMode === "fps") {
+
+        // FPSマップを描画
+        drawFPSMap(ctx);
+
+        // プレイヤーを描画
+        drawFPSPlayers(
+            ctx,
+            players,
+            myPlayerId
         );
 
+        // 弾を描画
+        drawFPSBullets(ctx);
 
-        // ----------------------------------------------
-        // コイン
-        // ---------------------------------------------
+        // 自分の銃を描画
+        drawFPSGun(
+            ctx,
+            myPlayer
+        );
 
-        if (gameMode !== "fps") {
-            drawCoins(ctx, coins);
-        }
+    } else {
+        // コインゲームは今まで通り
+        for (const player of players) {
 
-        // ----------------------------------------------
-        // プレイヤー描画
-        // ----------------------------------------------
-
-        if (gameMode === "fps") {
-
-            // FPSマップを描画
-            drawFPSMap(ctx);
-
-            // プレイヤーを描画
-            drawFPSPlayers(
-                ctx,
-                players,
-                myPlayerId
-            );
-
-            // 弾を描画
-            drawFPSBullets(ctx);
-
-            // 自分の銃を描画
-            drawFPSGun(
-                ctx,
-                myPlayer
-            );
-
-        } else {
-            // コインゲームは今まで通り
-            for (const player of players) {
-
-                if (
-                    player.id === myPlayerId
-                ) {
-                    continue;
-                }
-
-                ctx.fillStyle =
-                    player.color || "blue";
-
-                ctx.fillRect(
-                    player.x,
-                    player.y,
-                    30,
-                    30
-                );
-
+            if (
+                player.id === myPlayerId
+            ) {
+                continue;
             }
 
-        }
-
-
-        // ----------------------------------------------
-        // 自分
-        // ----------------------------------------------
-
-        if (gameMode !== "fps") {
-
             ctx.fillStyle =
-                myColor;
+                player.color || "blue";
 
             ctx.fillRect(
-                myPlayer.x,
-                myPlayer.y,
-                myPlayer.size,
-                myPlayer.size
-            );
-
-            ctx.fillStyle =
-                "white";
-
-            ctx.font =
-                "12px sans-serif";
-
-            ctx.textAlign =
-                "center";
-
-            ctx.fillText(
-                "YOU",
-                myPlayer.x + 15,
-                myPlayer.y - 7
+                player.x,
+                player.y,
+                30,
+                30
             );
 
         }
-
 
     }
 
 
-    // ==================================================
-    // ゲームループ
-    // ==================================================
+    // ----------------------------------------------
+    // 自分
+    // ----------------------------------------------
 
-    function gameLoop(currentTime) {
+    if (gameMode !== "fps") {
 
-        update(currentTime);
+        ctx.fillStyle =
+            myColor;
 
-        draw();
+        ctx.fillRect(
+            myPlayer.x,
+            myPlayer.y,
+            myPlayer.size,
+            myPlayer.size
+        );
 
-        requestAnimationFrame(
-            gameLoop
+        ctx.fillStyle =
+            "white";
+
+        ctx.font =
+            "12px sans-serif";
+
+        ctx.textAlign =
+            "center";
+
+        ctx.fillText(
+            "YOU",
+            myPlayer.x + 15,
+            myPlayer.y - 7
         );
 
     }
 
 
-    // ==================================================
-    // ゲーム終了画面
-    // ==================================================
+}
 
-    function showGameOver(resultData) {
 
-        const old =
-            document.getElementById(
-                "gameOver"
+// ==================================================
+// ゲームループ
+// ==================================================
+
+function gameLoop(currentTime) {
+
+    update(currentTime);
+
+    draw();
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+
+// ==================================================
+// ゲーム終了画面
+// ==================================================
+
+function showGameOver(resultData) {
+
+    const old =
+        document.getElementById(
+            "gameOver"
+        );
+
+    if (old) {
+
+        old.remove();
+
+    }
+
+
+    const result =
+        document.createElement("div");
+
+    result.id =
+        "gameOver";
+
+    result.style.position =
+        "fixed";
+
+    result.style.left =
+        "50%";
+
+    result.style.top =
+        "50%";
+
+    result.style.transform =
+        "translate(-50%, -50%)";
+
+    result.style.background =
+        "white";
+
+    result.style.color =
+        "black";
+
+    result.style.padding =
+        "30px";
+
+    result.style.borderRadius =
+        "15px";
+
+    result.style.fontSize =
+        "20px";
+
+    result.style.zIndex =
+        "1000";
+
+    result.style.minWidth =
+        "280px";
+
+
+    let html =
+        "<strong>🏆 GAME OVER</strong><br><br>";
+
+
+    if (resultData.type === "ranking") {
+
+        resultData.ranking.forEach((player) => {
+
+            let medal = "";
+
+            if (player.rank === 1) {
+                medal = "🥇";
+            } else if (player.rank === 2) {
+                medal = "🥈";
+            } else if (player.rank === 3) {
+                medal = "🥉";
+            }
+
+            html +=
+                `${medal} ${player.rank}位 ` +
+                `${escapeHtml(player.name)} ` +
+                `${player.score}枚<br>`;
+        });
+
+        const myResult =
+            resultData.ranking.find(
+                (player) =>
+                    player.id === myPlayerId
             );
 
-        if (old) {
+        if (myResult) {
 
-            old.remove();
-
-        }
-
-
-        const result =
-            document.createElement("div");
-
-        result.id =
-            "gameOver";
-
-        result.style.position =
-            "fixed";
-
-        result.style.left =
-            "50%";
-
-        result.style.top =
-            "50%";
-
-        result.style.transform =
-            "translate(-50%, -50%)";
-
-        result.style.background =
-            "white";
-
-        result.style.color =
-            "black";
-
-        result.style.padding =
-            "30px";
-
-        result.style.borderRadius =
-            "15px";
-
-        result.style.fontSize =
-            "20px";
-
-        result.style.zIndex =
-            "1000";
-
-        result.style.minWidth =
-            "280px";
-
-
-        let html =
-            "<strong>🏆 GAME OVER</strong><br><br>";
-
-
-        if (resultData.type === "ranking") {
-
-            resultData.ranking.forEach((player) => {
-
-                let medal = "";
-
-                if (player.rank === 1) {
-                    medal = "🥇";
-                } else if (player.rank === 2) {
-                    medal = "🥈";
-                } else if (player.rank === 3) {
-                    medal = "🥉";
-                }
-
-                html +=
-                    `${medal} ${player.rank}位 ` +
-                    `${escapeHtml(player.name)} ` +
-                    `${player.score}枚<br>`;
-            });
-
-            const myResult =
-                resultData.ranking.find(
-                    (player) =>
-                        player.id === myPlayerId
-                );
-
-            if (myResult) {
-
-                html += `
+            html += `
             <hr>
 
             <strong>📊 あなたの成績</strong><br><br>
@@ -1309,41 +1317,41 @@ function update(currentTime) {
             🛡️ 被ダメージ：${myResult.damageTaken}<br>
         `;
 
-            }
-
         }
-        if (resultData.type === "tdm") {
 
-            const teamKills = resultData.teamKills;
+    }
+    if (resultData.type === "tdm") {
 
-            html += `
+        const teamKills = resultData.teamKills;
+
+        html += `
         🔵 Aチーム：${teamKills.A}キル<br>
         🔴 Bチーム：${teamKills.B}キル<br><br>
     `;
 
-            if (teamKills.A > teamKills.B) {
+        if (teamKills.A > teamKills.B) {
 
-                html += "🏆 Aチームの勝利！<br>";
+            html += "🏆 Aチームの勝利！<br>";
 
-            } else if (teamKills.B > teamKills.A) {
+        } else if (teamKills.B > teamKills.A) {
 
-                html += "🏆 Bチームの勝利！<br>";
+            html += "🏆 Bチームの勝利！<br>";
 
-            } else {
+        } else {
 
-                html += "🤝 引き分け！<br>";
+            html += "🤝 引き分け！<br>";
 
-            }
+        }
 
-            const myResult =
-                resultData.players.find(
-                    (player) =>
-                        player.id === myPlayerId
-                );
+        const myResult =
+            resultData.players.find(
+                (player) =>
+                    player.id === myPlayerId
+            );
 
-            if (myResult) {
+        if (myResult) {
 
-                html += `
+            html += `
             <hr>
 
             <strong>📊 あなたの成績</strong><br><br>
@@ -1353,11 +1361,11 @@ function update(currentTime) {
             💥 与ダメージ：${myResult.damageDealt}<br>
             🛡️ 被ダメージ：${myResult.damageTaken}<br>
         `;
-            }
         }
+    }
 
 
-        html += `
+    html += `
     <br>
 
     <button id="detailButton">
@@ -1377,235 +1385,235 @@ function update(currentTime) {
     </small>
 `;
 
-        result.innerHTML =
-            html;
+    result.innerHTML =
+        html;
 
 
-        document.body.appendChild(
-            result
-        );
-        const detailButton =
-            document.getElementById("detailButton");
-
-        detailButton.onclick = () => {
-            alert("詳細成績を表示する予定！");
-        };
-        const nextGameButton =
-            document.getElementById("nextGameButton");
-
-        nextGameButton.addEventListener(
-            "click",
-            () => {
-
-                if (
-                    !socket ||
-                    socket.readyState !== WebSocket.OPEN
-                ) {
-
-                    alert(
-                        "サーバーとの接続がありません"
-                    );
-
-                    return;
-
-                }
-
-                nextGameButton.disabled = true;
-
-                nextGameButton.textContent =
-                    "準備完了！";
-
-                socket.send(
-                    JSON.stringify({
-                        type: "next-game"
-                    })
-                );
-
-            }
-        );
-    }
-
-
-    // ==================================================
-    // HTML安全化
-    // ==================================================
-
-    function escapeHtml(text) {
-
-        return String(text)
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#039;");
-
-    }
-
-
-    // ==================================================
-    // チャット
-    // ==================================================
-
-    const chatInput =
-        document.getElementById(
-            "chatInput"
-        );
-
-    const chatSend =
-        document.getElementById(
-            "chatSend"
-        );
-
-    const chatMessages =
-        document.getElementById(
-            "chatMessages"
-        );
-
-
-    function addChatMessage(
-        name,
-        text
-    ) {
-
-        const message =
-            document.createElement(
-                "div"
-            );
-
-        message.textContent =
-            `${name}: ${text}`;
-
-        chatMessages.appendChild(
-            message
-        );
-
-        chatMessages.scrollTop =
-            chatMessages.scrollHeight;
-
-    }
-
-
-    function sendChat() {
-
-        const text =
-            chatInput.value.trim();
-
-        if (!text) {
-
-            return;
-
-        }
-
-        if (
-            !socket ||
-            socket.readyState !==
-            WebSocket.OPEN
-        ) {
-
-            alert(
-                "まだゲームに接続されていません"
-            );
-
-            return;
-
-        }
-
-        socket.send(
-            JSON.stringify({
-
-                type: "chat",
-
-                text: text
-
-            })
-        );
-
-        chatInput.value = "";
-
-    }
-
-
-    chatSend.addEventListener(
-        "click",
-        sendChat
+    document.body.appendChild(
+        result
     );
+    const detailButton =
+        document.getElementById("detailButton");
 
+    detailButton.onclick = () => {
+        alert("詳細成績を表示する予定！");
+    };
+    const nextGameButton =
+        document.getElementById("nextGameButton");
 
-    chatInput.addEventListener(
-        "keydown",
-        (event) => {
+    nextGameButton.addEventListener(
+        "click",
+        () => {
 
             if (
-                event.key ===
-                "Enter"
+                !socket ||
+                socket.readyState !== WebSocket.OPEN
             ) {
 
-                sendChat();
+                alert(
+                    "サーバーとの接続がありません"
+                );
+
+                return;
 
             }
 
+            nextGameButton.disabled = true;
+
+            nextGameButton.textContent =
+                "準備完了！";
+
+            socket.send(
+                JSON.stringify({
+                    type: "next-game"
+                })
+            );
+
         }
     );
+}
 
-    // ==================================================
-    // FPS スコアボード表示
-    // ==================================================
 
-    function updateScoreboard() {
+// ==================================================
+// HTML安全化
+// ==================================================
 
-        let scoreboard = document.getElementById("fpsScoreboard");
+function escapeHtml(text) {
 
-        // 初回だけ作る
-        if (!scoreboard) {
+    return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 
-            scoreboard = document.createElement("div");
+}
 
-            scoreboard.id = "fpsScoreboard";
 
-            scoreboard.style.position = "fixed";
-            scoreboard.style.top = "50%";
-            scoreboard.style.left = "50%";
-            scoreboard.style.transform = "translate(-50%, -50%)";
+// ==================================================
+// チャット
+// ==================================================
 
-            scoreboard.style.width = "600px";
-            scoreboard.style.maxWidth = "90%";
+const chatInput =
+    document.getElementById(
+        "chatInput"
+    );
 
-            scoreboard.style.background = "rgba(0, 0, 0, 0.65)";
-            scoreboard.style.color = "rgba(255,255,255,0.8)";
+const chatSend =
+    document.getElementById(
+        "chatSend"
+    );
 
-            scoreboard.style.padding = "15px";
-            scoreboard.style.borderRadius = "8px";
+const chatMessages =
+    document.getElementById(
+        "chatMessages"
+    );
 
-            scoreboard.style.zIndex = "9999";
 
-            scoreboard.style.fontFamily = "sans-serif";
-            scoreboard.style.fontSize = "14px";
+function addChatMessage(
+    name,
+    text
+) {
 
-            document.body.appendChild(scoreboard);
+    const message =
+        document.createElement(
+            "div"
+        );
+
+    message.textContent =
+        `${name}: ${text}`;
+
+    chatMessages.appendChild(
+        message
+    );
+
+    chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+
+}
+
+
+function sendChat() {
+
+    const text =
+        chatInput.value.trim();
+
+    if (!text) {
+
+        return;
+
+    }
+
+    if (
+        !socket ||
+        socket.readyState !==
+        WebSocket.OPEN
+    ) {
+
+        alert(
+            "まだゲームに接続されていません"
+        );
+
+        return;
+
+    }
+
+    socket.send(
+        JSON.stringify({
+
+            type: "chat",
+
+            text: text
+
+        })
+    );
+
+    chatInput.value = "";
+
+}
+
+
+chatSend.addEventListener(
+    "click",
+    sendChat
+);
+
+
+chatInput.addEventListener(
+    "keydown",
+    (event) => {
+
+        if (
+            event.key ===
+            "Enter"
+        ) {
+
+            sendChat();
+
         }
 
-        // 非表示
-        if (!scoreboardVisible || gameMode !== "fps") {
-            scoreboard.style.display = "none";
-            return;
-        }
+    }
+);
 
-        scoreboard.style.display = "block";
+// ==================================================
+// FPS スコアボード表示
+// ==================================================
 
-        // チームごとに分ける
-        const teamA = players.filter(p => p.team === "A");
-        const teamB = players.filter(p => p.team === "B");
+function updateScoreboard() {
 
-        let html = "";
+    let scoreboard = document.getElementById("fpsScoreboard");
 
-        html += `
+    // 初回だけ作る
+    if (!scoreboard) {
+
+        scoreboard = document.createElement("div");
+
+        scoreboard.id = "fpsScoreboard";
+
+        scoreboard.style.position = "fixed";
+        scoreboard.style.top = "50%";
+        scoreboard.style.left = "50%";
+        scoreboard.style.transform = "translate(-50%, -50%)";
+
+        scoreboard.style.width = "600px";
+        scoreboard.style.maxWidth = "90%";
+
+        scoreboard.style.background = "rgba(0, 0, 0, 0.65)";
+        scoreboard.style.color = "rgba(255,255,255,0.8)";
+
+        scoreboard.style.padding = "15px";
+        scoreboard.style.borderRadius = "8px";
+
+        scoreboard.style.zIndex = "9999";
+
+        scoreboard.style.fontFamily = "sans-serif";
+        scoreboard.style.fontSize = "14px";
+
+        document.body.appendChild(scoreboard);
+    }
+
+    // 非表示
+    if (!scoreboardVisible || gameMode !== "fps") {
+        scoreboard.style.display = "none";
+        return;
+    }
+
+    scoreboard.style.display = "block";
+
+    // チームごとに分ける
+    const teamA = players.filter(p => p.team === "A");
+    const teamB = players.filter(p => p.team === "B");
+
+    let html = "";
+
+    html += `
         <div style="text-align:center;font-size:18px;margin-bottom:10px;">
             スコアボード
         </div>
     `;
 
-        // Aチーム
-        html += `
+    // Aチーム
+    html += `
         <div style="margin-bottom:12px;">
             <div style="font-size:16px;">
                 🔵 Aチーム
@@ -1619,9 +1627,9 @@ function update(currentTime) {
             </div>
     `;
 
-        for (const player of teamA) {
+    for (const player of teamA) {
 
-            html += `
+        html += `
             <div style="display:grid;grid-template-columns:1fr 60px 60px 100px;gap:8px;">
                 <span>${player.name}</span>
                 <span>${player.kills ?? 0}</span>
@@ -1629,12 +1637,12 @@ function update(currentTime) {
                 <span>${player.damageDealt ?? 0}</span>
             </div>
         `;
-        }
+    }
 
-        html += `</div>`;
+    html += `</div>`;
 
-        // Bチーム
-        html += `
+    // Bチーム
+    html += `
         <div>
             <div style="font-size:16px;">
                 🔴 Bチーム
@@ -1648,9 +1656,9 @@ function update(currentTime) {
             </div>
     `;
 
-        for (const player of teamB) {
+    for (const player of teamB) {
 
-            html += `
+        html += `
             <div style="display:grid;grid-template-columns:1fr 60px 60px 100px;gap:8px;">
                 <span>${player.name}</span>
                 <span>${player.kills ?? 0}</span>
@@ -1658,98 +1666,98 @@ function update(currentTime) {
                 <span>${player.damageDealt ?? 0}</span>
             </div>
         `;
-        }
-
-        html += `</div>`;
-
-        scoreboard.innerHTML = html;
-    }
-    // ==================================================
-    // スマホ版 FPS スコアボード
-    // ==================================================
-
-    const mobileScoreboardButton =
-        document.getElementById("mobileScoreboardButton");
-
-    if (mobileScoreboardButton) {
-
-        // 指で押した
-        mobileScoreboardButton.addEventListener("touchstart", (e) => {
-
-            e.preventDefault();
-
-            if (gameMode !== "fps") {
-                return;
-            }
-
-            scoreboardVisible = true;
-            updateScoreboard();
-        });
-
-        // 指を離した
-        mobileScoreboardButton.addEventListener("touchend", (e) => {
-
-            e.preventDefault();
-
-            scoreboardVisible = false;
-            updateScoreboard();
-        });
-
-        // マウスでもテストできるようにする
-        mobileScoreboardButton.addEventListener("mousedown", () => {
-
-            if (gameMode !== "fps") {
-                return;
-            }
-
-            scoreboardVisible = true;
-            updateScoreboard();
-        });
-
-        mobileScoreboardButton.addEventListener("mouseup", () => {
-
-            scoreboardVisible = false;
-            updateScoreboard();
-        });
     }
 
-    // スマホ用スコアボードボタンの表示
-    // FPSのときだけスマホ用スコアボードボタンを表示
-    function updateMobileScoreboardButton() {
+    html += `</div>`;
 
-        const button =
-            document.getElementById("mobileScoreboardButton");
+    scoreboard.innerHTML = html;
+}
+// ==================================================
+// スマホ版 FPS スコアボード
+// ==================================================
 
-        if (!button) {
+const mobileScoreboardButton =
+    document.getElementById("mobileScoreboardButton");
+
+if (mobileScoreboardButton) {
+
+    // 指で押した
+    mobileScoreboardButton.addEventListener("touchstart", (e) => {
+
+        e.preventDefault();
+
+        if (gameMode !== "fps") {
             return;
         }
 
-        if (gameMode === "fps") {
-            button.style.display = "inline-block";
-        } else {
-            button.style.display = "none";
-        }
-    }
-    // ====================
-    // チャット開閉
-    // ====================
-
-    const chatToggleButton =
-        document.getElementById("chatToggleButton");
-
-    const chatWindow =
-        document.getElementById("chatWindow");
-
-    chatToggleButton.addEventListener("click", () => {
-
-        if (chatWindow.style.display === "block") {
-
-            chatWindow.style.display = "none";
-
-        } else {
-
-            chatWindow.style.display = "block";
-
-        }
-
+        scoreboardVisible = true;
+        updateScoreboard();
     });
+
+    // 指を離した
+    mobileScoreboardButton.addEventListener("touchend", (e) => {
+
+        e.preventDefault();
+
+        scoreboardVisible = false;
+        updateScoreboard();
+    });
+
+    // マウスでもテストできるようにする
+    mobileScoreboardButton.addEventListener("mousedown", () => {
+
+        if (gameMode !== "fps") {
+            return;
+        }
+
+        scoreboardVisible = true;
+        updateScoreboard();
+    });
+
+    mobileScoreboardButton.addEventListener("mouseup", () => {
+
+        scoreboardVisible = false;
+        updateScoreboard();
+    });
+}
+
+// スマホ用スコアボードボタンの表示
+// FPSのときだけスマホ用スコアボードボタンを表示
+function updateMobileScoreboardButton() {
+
+    const button =
+        document.getElementById("mobileScoreboardButton");
+
+    if (!button) {
+        return;
+    }
+
+    if (gameMode === "fps") {
+        button.style.display = "inline-block";
+    } else {
+        button.style.display = "none";
+    }
+}
+// ====================
+// チャット開閉
+// ====================
+
+const chatToggleButton =
+    document.getElementById("chatToggleButton");
+
+const chatWindow =
+    document.getElementById("chatWindow");
+
+chatToggleButton.addEventListener("click", () => {
+
+    if (chatWindow.style.display === "block") {
+
+        chatWindow.style.display = "none";
+
+    } else {
+
+        chatWindow.style.display = "block";
+
+    }
+
+});
