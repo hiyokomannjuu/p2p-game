@@ -356,6 +356,65 @@ aimStick.appendChild(aimStickKnob);
 // 右スティック操作
 // ==================================================
 
+// ==================================================
+// 右スティック操作・外側で連射
+// ==================================================
+
+let aimShooting = false;
+let aimShootTimer = null;
+
+function shootFPS() {
+    if (gameMode !== "fps") {
+        return;
+    }
+
+    if (gamePhase !== "playing") {
+        return;
+    }
+
+    if (
+        socket &&
+        socket.readyState === WebSocket.OPEN
+    ) {
+        socket.send(
+            JSON.stringify({
+                type: "fps-shoot",
+                direction: shootDirection
+            })
+        );
+    }
+}
+
+function startAimShooting() {
+    if (aimShooting) {
+        return;
+    }
+
+    aimShooting = true;
+
+    shootFPS();
+
+    aimShootTimer = setInterval(() => {
+        shootFPS();
+    }, 150);
+}
+
+function stopAimShooting() {
+    aimShooting = false;
+
+    if (aimShootTimer) {
+        clearInterval(aimShootTimer);
+        aimShootTimer = null;
+    }
+}
+
+aimStick.addEventListener(
+    "pointerdown",
+    (event) => {
+        aimStick.setPointerCapture(event.pointerId);
+    }
+);
+
 aimStick.addEventListener(
     "pointermove",
     (event) => {
@@ -393,36 +452,36 @@ aimStick.addEventListener(
             dy =
                 dy / distance *
                 maxDistance;
-
         }
 
-        // 照準方向
         if (distance > 5) {
-
             shootDirection = {
                 x: dx / maxDistance,
                 y: dy / maxDistance
             };
-
         }
 
-        // スティックの見た目
         aimStickKnob.style.left =
             `${35 + dx}px`;
 
         aimStickKnob.style.top =
             `${35 + dy}px`;
 
+        // 外側まで倒したら射撃開始
+        if (distance >= maxDistance * 0.85) {
+            startAimShooting();
+        } else {
+            stopAimShooting();
+        }
     }
 );
 
-
-// 指を離したら中央に戻す
 function resetAimStick() {
+
+    stopAimShooting();
 
     aimStickKnob.style.left = "35px";
     aimStickKnob.style.top = "35px";
-
 }
 
 aimStick.addEventListener(
@@ -434,69 +493,7 @@ aimStick.addEventListener(
     "pointercancel",
     resetAimStick
 );
-// ==================================================
-// FPS スマホ用・撃つボタン
-// ==================================================
 
-const shootButton =
-    document.createElement("button");
-
-shootButton.id = "shootButton";
-
-shootButton.textContent = "🔫 撃つ";
-
-shootButton.style.position = "fixed";
-shootButton.style.right = "45px";
-shootButton.style.bottom = "180px";
-
-shootButton.style.width = "100px";
-shootButton.style.height = "60px";
-
-shootButton.style.fontSize = "20px";
-shootButton.style.touchAction = "none";
-
-if (isMobile) {
-    document.body.appendChild(shootButton);
-}
-
-
-// ==================================================
-// 撃つ
-// ==================================================
-
-shootButton.addEventListener(
-    "pointerdown",
-    (event) => {
-
-        event.preventDefault();
-
-        // FPS以外では撃たない
-        if (gameMode !== "fps") {
-            return;
-        }
-
-        // ゲーム中以外では撃たない
-        if (gamePhase !== "playing") {
-            return;
-        }
-
-        // サーバーへ射撃方向を送る
-        if (
-            socket &&
-            socket.readyState === WebSocket.OPEN
-        ) {
-
-            socket.send(
-                JSON.stringify({
-                    type: "fps-shoot",
-                    direction: shootDirection
-                })
-            );
-
-        }
-
-    }
-);
 
 // ==================================================
 // FPS 銃の描画
