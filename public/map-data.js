@@ -1,4 +1,4 @@
-window.maps = {
+const maps = {
     map1: {
         width: 1000,
         height: 500,
@@ -70,7 +70,12 @@ window.maps = {
     }
 };
 
-// Node.js（server.js）からも使えるようにする
+// ブラウザ用
+if (typeof window !== "undefined") {
+    window.maps = maps;
+}
+
+// Node.js用
 if (typeof module !== "undefined") {
     module.exports = { maps };
 }
