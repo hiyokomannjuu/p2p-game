@@ -1348,12 +1348,10 @@ setInterval(() => {
             continue;
         }
 
-        // 弾がなければ作る
         if (!currentRoom.bullets) {
             currentRoom.bullets = [];
         }
 
-        // 弾を動かす
         for (
             let i = currentRoom.bullets.length - 1;
             i >= 0;
@@ -1366,44 +1364,218 @@ setInterval(() => {
             // 弾の速度
             const bulletSpeed = 50;
 
-            bullet.x +=
-                bullet.dx * bulletSpeed;
+            // 移動前の位置
+            const oldBulletX = bullet.x;
+            const oldBulletY = bullet.y;
 
-            bullet.y +=
-                bullet.dy * bulletSpeed;
+            // 移動後の位置
+            const newBulletX =
+                bullet.x + bullet.dx * bulletSpeed;
+
+            const newBulletY =
+                bullet.y + bullet.dy * bulletSpeed;
 
             // --------------------------------
-            // 壁との当たり判定
+            // 弾の移動経路を細かく判定
             // --------------------------------
 
-            const currentRoomMap =
-                maps[currentRoom.map || "map1"];
+            const distance = bulletSpeed;
 
-            let hitWall = false;
+            const steps =
+                Math.ceil(distance / 5);
 
-            for (const wall of currentRoomMap.walls) {
+            let hit = false;
 
-                const hit =
-                    bullet.x >= wall.x &&
-                    bullet.x <= wall.x + wall.width &&
-                    bullet.y >= wall.y &&
-                    bullet.y <= wall.y + wall.height;
+            for (let step = 1; step <= steps; step++) {
+
+                const t = step / steps;
+
+                const checkX =
+                    oldBulletX +
+                    (newBulletX - oldBulletX) * t;
+
+                const checkY =
+                    oldBulletY +
+                    (newBulletY - oldBulletY) * t;
+
+                // --------------------------------
+                // 壁判定
+                // --------------------------------
+
+                const currentRoomMap =
+                    maps[currentRoom.map || "map1"];
+
+                for (const wall of currentRoomMap.walls) {
+
+                    const hitWall =
+                        checkX >= wall.x &&
+                        checkX <= wall.x + wall.width &&
+                        checkY >= wall.y &&
+                        checkY <= wall.y + wall.height;
+
+                    if (hitWall) {
+                        hit = true;
+                        break;
+                    }
+                }
 
                 if (hit) {
-                    hitWall = true;
+                    break;
+                }
+
+                // --------------------------------
+                // プレイヤー判定
+                // --------------------------------
+
+                for (
+                    const target of currentRoom.players.values()
+                ) {
+
+                    // 自分には当たらない
+                    if (
+                        target.id ===
+                        bullet.ownerId
+                    ) {
+                        continue;
+                    }
+
+                    // リスポーン直後の3秒間は無敵
+                    if (
+                        target.invulnerableUntil &&
+                        Date.now() < target.invulnerableUntil
+                    ) {
+                        continue;
+                    }
+
+                    // 同じチームには当たらない
+                    if (
+                        bullet.team &&
+                        target.team &&
+                        bullet.team === target.team
+                    ) {
+                        continue;
+                    }
+
+                    const hitPlayer =
+                        checkX >= target.x - 10 &&
+                        checkX <= target.x + 30 + 10 &&
+                        checkY >= target.y - 10 &&
+                        checkY <= target.y + 30 + 10;
+
+                    if (hitPlayer) {
+
+                        // HPを減らす
+                        target.hp =
+                            (target.hp ?? 100) -
+                            (bullet.damage ?? 25);
+
+                        // ダメージ詳細
+                        target.damageTaken +=
+                            bullet.damage ?? 25;
+
+                        const shooter =
+                            currentRoom.players.get(
+                                bullet.ownerId
+                            );
+
+                        if (shooter) {
+                            shooter.damageDealt +=
+                                bullet.damage ?? 25;
+                        }
+
+                        // HPが0未満にならないようにする
+                        target.hp =
+                            Math.max(
+                                0,
+                                target.hp
+                            );
+
+                        console.log(
+                            `${target.name} HP: ${target.hp}`
+                        );
+
+                        // --------------------------------
+                        // 死亡・リスポーン
+                        // --------------------------------
+
+                        if (target.hp <= 0) {
+
+                            // チームキル
+                            if (bullet.team === "A") {
+                                currentRoom.teamKills.A++;
+                            } else if (bullet.team === "B") {
+                                currentRoom.teamKills.B++;
+                            }
+
+                            // キル数
+                            if (shooter) {
+                                shooter.kills++;
+                            }
+
+                            target.deaths++;
+
+                            // キル数を全員に送信
+                            broadcastRoom(
+                                currentRoom,
+                                {
+                                    type: "team-kills",
+                                    teamKills:
+                                        currentRoom.teamKills
+                                }
+                            );
+
+                            console.log(
+                                `${target.name} が倒された！`
+                            );
+
+                            // スポーン
+                            if (target.team === "A") {
+                                target.x = 100;
+                                target.y = 220;
+                            } else {
+                                target.x = 670;
+                                target.y = 220;
+                            }
+
+                            // HP全回復
+                            target.hp = 100;
+
+                            // 3秒無敵
+                            target.invulnerableUntil =
+                                Date.now() + 3000;
+
+                            console.log(
+                                `${target.name} がリスポーン！`
+                            );
+                        }
+
+                        hit = true;
+                        break;
+                    }
+                }
+
+                if (hit) {
                     break;
                 }
             }
 
-            // 壁に当たったら弾を削除
-            if (hitWall) {
+            // --------------------------------
+            // 壁・プレイヤーに当たった
+            // --------------------------------
+
+            if (hit) {
 
                 currentRoom.bullets.splice(i, 1);
 
                 continue;
             }
 
+            // --------------------------------
+            // 弾を最終位置へ移動
+            // --------------------------------
 
+            bullet.x = newBulletX;
+            bullet.y = newBulletY;
 
             // --------------------------------
             // 画面外なら削除
@@ -1419,134 +1591,8 @@ setInterval(() => {
                 currentRoom.bullets.splice(i, 1);
 
                 continue;
-
             }
-
-
-            // --------------------------------
-            // プレイヤーとの当たり判定
-            // --------------------------------
-
-            for (
-                const target of currentRoom.players.values()
-            ) {
-
-                // 自分には当たらない
-                if (
-                    target.id ===
-                    bullet.ownerId
-                ) {
-                    continue;
-                }
-                // リスポーン直後の3秒間は無敵
-                if (
-                    target.invulnerableUntil &&
-                    Date.now() < target.invulnerableUntil
-                ) {
-                    continue;
-                }
-                // 同じチームには当たらない
-                if (
-                    bullet.team &&
-                    target.team &&
-                    bullet.team === target.team
-                ) {
-                    continue;
-                }
-
-                const hit =
-                    bullet.x >= target.x - 10 &&
-                    bullet.x <= target.x + 30 + 10 &&
-                    bullet.y >= target.y - 10 &&
-                    bullet.y <= target.y + 30 + 10;
-                if (hit) {
-
-                    // HPを減らす
-                    target.hp =
-                        (target.hp ?? 100) -
-                        (bullet.damage ?? 25);
-
-                    //　ダメージ詳細の記録
-                    target.damageTaken += bullet.damage ?? 25;
-
-                    const shooter = currentRoom.players.get(bullet.ownerId);
-                    if (shooter) {
-                        shooter.damageDealt += bullet.damage ?? 25;
-                    }
-
-                    // HPが0未満にならないようにする
-                    target.hp =
-                        Math.max(
-                            0,
-                            target.hp
-                        );
-
-                    console.log(
-                        `${target.name} HP: ${target.hp}`
-                    );
-
-                    // --------------------------------
-                    // HPが0になったら死亡・リスポーン
-                    // --------------------------------
-
-                    if (target.hp <= 0) {
-
-                        // 倒したプレイヤーのチームにキルを加算
-                        if (bullet.team === "A") {
-                            currentRoom.teamKills.A++;
-                        } else if (bullet.team === "B") {
-                            currentRoom.teamKills.B++;
-                        }
-                        // キルとデス数の詳細
-                        const shooter = currentRoom.players.get(bullet.ownerId);
-
-                        if (shooter) {
-                            shooter.kills++;
-                        }
-
-                        target.deaths++;
-                        // キル数を全員に送信
-                        broadcastRoom(currentRoom, {
-                            type: "team-kills",
-                            teamKills: currentRoom.teamKills
-                        });
-
-                        console.log(
-                            `${target.name} が倒された！`
-                        );
-
-                        // チームのスポーン位置へ戻す
-                        if (target.team === "A") {
-                            target.x = 100;
-                            target.y = 220;
-                        } else {
-                            target.x = 670;
-                            target.y = 220;
-                        }
-
-                        // HPを全回復
-                        target.hp = 100;
-
-                        // 3秒間無敵
-                        target.invulnerableUntil =
-                            Date.now() + 3000;
-
-                        console.log(
-                            `${target.name} がリスポーン！`
-                        );
-                    }
-
-                    // 弾を削除
-                    currentRoom.bullets.splice(i, 1);
-
-                    break;
-
-                }
-
-            }
-
         }
-
 
         // --------------------------------
         // 全員に弾とプレイヤーを送信
@@ -1566,11 +1612,9 @@ setInterval(() => {
                     )
             }
         );
-
     }
 
 }, 16);
-
 
 // サーバー起動
 
